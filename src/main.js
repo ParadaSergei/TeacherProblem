@@ -1,19 +1,20 @@
 import { CATEGORIES, INITIAL_SCRIPTS } from './data/scriptsData.js';
 
+// API Base URL
+const API_BASE_URL = 'http://localhost:3001/api';
+
 // Application State
-let scripts = [...INITIAL_SCRIPTS];
+let scripts = [];
 let activeCategory = 'all';
 let searchQuery = '';
 let activeModalScript = null;
 
+// Users list for Admin Panel
+let usersList = [];
+
 // Auth & User State
-let isAuthenticated = false; // default welcome screen state
-let currentUser = {
-  name: 'Мария Сергеевна',
-  role: 'Учитель начальных классов',
-  email: 'teacher@school.edu.ru',
-  avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150'
-};
+let isAuthenticated = false;
+let currentUser = null;
 
 // DOM Elements - Header & Brand
 const brandHomeBtn = document.getElementById('brand-home-btn');
@@ -23,7 +24,13 @@ const headerLoginBtn = document.getElementById('header-login-btn');
 const headerTeacherName = document.getElementById('header-teacher-name');
 const bannerTeacherName = document.getElementById('banner-teacher-name');
 
-// DOM Elements - User Profile Avatar & Dropdown
+// Admin Panel Nav Elements
+const adminNavDropdown = document.getElementById('admin-nav-dropdown');
+const adminPanelMenuBtn = document.getElementById('admin-panel-menu-btn');
+const adminPanelDropdownBtn = document.getElementById('admin-panel-dropdown-btn');
+const openAdminMainBtn = document.getElementById('open-admin-main-btn');
+
+// User Profile Avatar & Dropdown
 const avatarInteractiveZone = document.getElementById('avatar-interactive-zone');
 const teacherAvatarImg = document.getElementById('teacher-avatar-img');
 const avatarFileInput = document.getElementById('avatar-file-input');
@@ -37,10 +44,10 @@ const logoutDropdownBtn = document.getElementById('logout-dropdown-btn');
 const welcomeSection = document.getElementById('welcome-section');
 const dashboardBanner = document.getElementById('dashboard-banner');
 const welcomeLoginBtn = document.getElementById('welcome-login-btn');
-const welcomeDemoBtn = document.getElementById('welcome-demo-btn');
+const welcomeAdminLoginBtn = document.getElementById('welcome-admin-login-btn');
 const addScriptMainBtn = document.getElementById('add-script-main-btn');
 
-// DOM Elements - Database & Filters
+// Database & Filters
 const categoriesListEl = document.getElementById('categories-list');
 const scriptsGridEl = document.getElementById('scripts-grid');
 const searchInputEl = document.getElementById('search-input');
@@ -51,7 +58,7 @@ const emptyStateEl = document.getElementById('empty-state');
 const emptyResetBtn = document.getElementById('empty-reset-btn');
 const toastEl = document.getElementById('toast');
 
-// DOM Elements - Modals
+// Modals
 const scriptModalEl = document.getElementById('script-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalCategoryEl = document.getElementById('modal-category');
@@ -70,7 +77,7 @@ const addScriptForm = document.getElementById('add-script-form');
 const loginModalEl = document.getElementById('login-modal');
 const loginModalCloseBtn = document.getElementById('login-modal-close-btn');
 const loginForm = document.getElementById('login-form');
-const quickDemoLoginBtn = document.getElementById('quick-demo-login-btn');
+const quickAdminLoginBtn = document.getElementById('quick-admin-login-btn');
 
 const settingsModalEl = document.getElementById('settings-modal');
 const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
@@ -81,6 +88,25 @@ const settingsEmailInput = document.getElementById('settings-email');
 const settingsAvatarImg = document.getElementById('settings-avatar-img');
 const settingsChangePhotoBtn = document.getElementById('settings-change-photo-btn');
 const settingsCancelBtn = document.getElementById('settings-cancel-btn');
+
+// Admin Panel Modal Elements
+const adminModalEl = document.getElementById('admin-modal');
+const adminModalCloseBtn = document.getElementById('admin-modal-close-btn');
+const adminAddUserBtn = document.getElementById('admin-add-user-btn');
+const adminUsersTbody = document.getElementById('admin-users-tbody');
+
+// Add / Edit User Account Modal Elements
+const userFormModalEl = document.getElementById('user-form-modal');
+const userFormCloseBtn = document.getElementById('user-form-close-btn');
+const userFormCancelBtn = document.getElementById('user-form-cancel-btn');
+const userAccountForm = document.getElementById('user-account-form');
+const userFormModalTitle = document.getElementById('user-form-modal-title');
+const formUserId = document.getElementById('form-user-id');
+const formUserName = document.getElementById('form-user-name');
+const formUserEmail = document.getElementById('form-user-email');
+const formUserRole = document.getElementById('form-user-role');
+const formUserPassword = document.getElementById('form-user-password');
+const formUserIsAdmin = document.getElementById('form-user-is-admin');
 
 const infoModalEl = document.getElementById('info-modal');
 const infoModalCloseBtn = document.getElementById('info-modal-close-btn');
@@ -95,16 +121,51 @@ const menuGuideBtn = document.getElementById('menu-guide-btn');
 const menuAboutBtn = document.getElementById('menu-about-btn');
 
 // Initialize Application
-function init() {
-  updateUserUI();
+async function init() {
   renderCategories();
-  renderScripts();
+  await loadScriptsFromAPI();
+  updateUserUI();
   setupEventListeners();
+}
+
+// Fetch Scripts from Backend SQL API
+async function loadScriptsFromAPI() {
+  try {
+    statsTextEl.textContent = 'Загрузка скриптов из PostgreSQL БД...';
+    let url = `${API_BASE_URL}/scripts`;
+    const params = new URLSearchParams();
+
+    if (activeCategory !== 'all') params.append('category', activeCategory);
+    if (searchQuery.trim() !== '') params.append('search', searchQuery.trim());
+
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Ошибка сети при загрузке скриптов');
+
+    const data = await res.json();
+    scripts = data.map(item => ({
+      id: item.id.toString(),
+      category: item.category,
+      title: item.title,
+      description: item.description || item.situation,
+      situation: item.situation,
+      scriptText: item.script_text || item.scriptText,
+      tips: item.tips || [],
+      tags: item.tags || []
+    }));
+
+    renderScripts();
+  } catch (err) {
+    console.warn('⚠️ Используется локальная резервная копия скриптов:', err);
+    scripts = [...INITIAL_SCRIPTS];
+    renderScripts();
+  }
 }
 
 // Update User & Auth Interface
 function updateUserUI() {
-  if (isAuthenticated) {
+  if (isAuthenticated && currentUser) {
     loggedOutView.classList.add('hidden');
     loggedInView.classList.remove('hidden');
     welcomeSection.classList.add('hidden');
@@ -114,17 +175,32 @@ function updateUserUI() {
     if (bannerTeacherName) bannerTeacherName.textContent = currentUser.name;
     profileDropdownName.textContent = currentUser.name;
     profileDropdownRole.textContent = currentUser.role;
-    teacherAvatarImg.src = currentUser.avatar;
-    if (settingsAvatarImg) settingsAvatarImg.src = currentUser.avatar;
+
+    if (currentUser.avatar) {
+      teacherAvatarImg.src = currentUser.avatar;
+      if (settingsAvatarImg) settingsAvatarImg.src = currentUser.avatar;
+    }
+
+    // Toggle Admin Panel options if user is admin
+    if (currentUser.is_admin) {
+      adminNavDropdown.classList.remove('hidden');
+      adminPanelDropdownBtn.classList.remove('hidden');
+      openAdminMainBtn.classList.remove('hidden');
+    } else {
+      adminNavDropdown.classList.add('hidden');
+      adminPanelDropdownBtn.classList.add('hidden');
+      openAdminMainBtn.classList.add('hidden');
+    }
   } else {
     loggedOutView.classList.remove('hidden');
     loggedInView.classList.add('hidden');
     welcomeSection.classList.remove('hidden');
     dashboardBanner.classList.add('hidden');
+    adminNavDropdown.classList.add('hidden');
   }
 }
 
-// Render Categories
+// Render Categories Chips
 function renderCategories() {
   categoriesListEl.innerHTML = CATEGORIES.map(cat => `
     <button
@@ -137,29 +213,10 @@ function renderCategories() {
   `).join('');
 }
 
-// Filter Scripts
-function getFilteredScripts() {
-  return scripts.filter(script => {
-    const matchesCategory = activeCategory === 'all' || script.category === activeCategory;
-
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return matchesCategory;
-
-    const matchesTitle = script.title.toLowerCase().includes(query);
-    const matchesSituation = script.situation.toLowerCase().includes(query);
-    const matchesScript = script.scriptText.toLowerCase().includes(query);
-    const matchesTags = script.tags ? script.tags.some(tag => tag.toLowerCase().includes(query)) : false;
-
-    return matchesCategory && (matchesTitle || matchesSituation || matchesScript || matchesTags);
-  });
-}
-
 // Render Scripts Grid
 function renderScripts() {
-  const filtered = getFilteredScripts();
-
   const totalCount = scripts.length;
-  statsTextEl.textContent = `Показано ${filtered.length} из ${totalCount} ситуаций`;
+  statsTextEl.textContent = `Показано ${scripts.length} из ${totalCount} ситуаций в БД`;
 
   if (activeCategory !== 'all' || searchQuery.trim() !== '') {
     resetFiltersBtn.classList.remove('hidden');
@@ -167,7 +224,7 @@ function renderScripts() {
     resetFiltersBtn.classList.add('hidden');
   }
 
-  if (filtered.length === 0) {
+  if (scripts.length === 0) {
     scriptsGridEl.innerHTML = '';
     emptyStateEl.classList.remove('hidden');
     return;
@@ -175,7 +232,7 @@ function renderScripts() {
 
   emptyStateEl.classList.add('hidden');
 
-  scriptsGridEl.innerHTML = filtered.map(script => {
+  scriptsGridEl.innerHTML = scripts.map(script => {
     const categoryObj = CATEGORIES.find(c => c.id === script.category) || { name: 'Общее', icon: '📝' };
     const tagsHtml = (script.tags || []).slice(0, 3).map(tag => `<span class="tag">#${tag}</span>`).join('');
 
@@ -198,7 +255,7 @@ function renderScripts() {
 
 // Open Detail Modal
 function openScriptModal(scriptId) {
-  const script = scripts.find(s => s.id === scriptId);
+  const script = scripts.find(s => s.id.toString() === scriptId.toString());
   if (!script) return;
 
   activeModalScript = script;
@@ -225,18 +282,82 @@ function openScriptModal(scriptId) {
   scriptModalEl.classList.remove('hidden');
 }
 
+// ADMIN PANEL: Fetch Users from SQL API
+async function loadAdminUsers() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/users`);
+    if (!res.ok) throw new Error('Ошибка загрузки пользователей');
+    usersList = await res.json();
+    renderAdminUsersTable();
+  } catch (err) {
+    showToast('Ошибка работы с базой данных пользователей');
+  }
+}
+
+// ADMIN PANEL: Render Users Table
+function renderAdminUsersTable() {
+  adminUsersTbody.innerHTML = usersList.map(u => `
+    <tr>
+      <td><strong>#${u.id}</strong></td>
+      <td>
+        <div class="user-cell">
+          <img src="${u.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150'}" class="table-avatar-img" />
+          <span>${escapeHtml(u.name)}</span>
+        </div>
+      </td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.role || 'Учитель')}</td>
+      <td>
+        <span class="role-badge ${u.is_admin ? 'admin' : 'teacher'}">
+          ${u.is_admin ? '🛡️ Админ' : '👩‍🏫 Учитель'}
+        </span>
+      </td>
+      <td>
+        <div class="table-actions">
+          <button class="btn-icon edit-user-btn" data-user-id="${u.id}" title="Редактировать">✏️</button>
+          <button class="btn-icon danger delete-user-btn" data-user-id="${u.id}" title="Удалить аккаунт">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ADMIN PANEL: Open Add/Edit Account Modal
+function openUserFormModal(userId = null) {
+  if (userId) {
+    const user = usersList.find(u => u.id === userId);
+    if (!user) return;
+
+    userFormModalTitle.textContent = 'Редактировать аккаунт';
+    formUserId.value = user.id;
+    formUserName.value = user.name;
+    formUserEmail.value = user.email;
+    formUserRole.value = user.role || '';
+    formUserPassword.value = '';
+    formUserIsAdmin.checked = Boolean(user.is_admin);
+  } else {
+    userFormModalTitle.textContent = 'Добавить аккаунт учителя';
+    userAccountForm.reset();
+    formUserId.value = '';
+  }
+
+  userFormModalEl.classList.remove('hidden');
+}
+
 // Close Modals
 function closeModals() {
   scriptModalEl.classList.add('hidden');
   addModalEl.classList.add('hidden');
   loginModalEl.classList.add('hidden');
   settingsModalEl.classList.add('hidden');
+  adminModalEl.classList.add('hidden');
+  userFormModalEl.classList.add('hidden');
   infoModalEl.classList.add('hidden');
   activeModalScript = null;
 }
 
 // Photo Upload Handler
-function handlePhotoUpload(file) {
+async function handlePhotoUpload(file) {
   if (!file) return;
   if (!file.type.startsWith('image/')) {
     showToast('Пожалуйста, выберите файл изображения (JPEG/PNG).');
@@ -244,9 +365,23 @@ function handlePhotoUpload(file) {
   }
 
   const reader = new FileReader();
-  reader.onload = (e) => {
-    currentUser.avatar = e.target.result;
-    updateUserUI();
+  reader.onload = async (e) => {
+    const newAvatar = e.target.result;
+    if (currentUser) {
+      currentUser.avatar = newAvatar;
+      updateUserUI();
+
+      // Persist avatar change to backend
+      try {
+        await fetch(`${API_BASE_URL}/users/${currentUser.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar: newAvatar })
+        });
+      } catch (err) {
+        console.warn('Не удалось сохранить аватар на сервере:', err);
+      }
+    }
     showToast('Фото профиля успешно обновлено!');
   };
   reader.readAsDataURL(file);
@@ -268,7 +403,7 @@ async function copyToClipboard(text) {
   }
 }
 
-// Show Toast Notification
+// Show Toast
 function showToast(message) {
   toastEl.textContent = message;
   toastEl.classList.remove('hidden');
@@ -294,7 +429,7 @@ function setupEventListeners() {
     searchInputEl.value = '';
     clearSearchBtn.classList.add('hidden');
     renderCategories();
-    renderScripts();
+    loadScriptsFromAPI();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast('Главная страница');
   });
@@ -307,7 +442,7 @@ function setupEventListeners() {
       if (cat) {
         activeCategory = cat;
         renderCategories();
-        renderScripts();
+        loadScriptsFromAPI();
         document.getElementById('database-section').scrollIntoView({ behavior: 'smooth' });
       }
     });
@@ -341,7 +476,7 @@ function setupEventListeners() {
       searchInputEl.value = 'родител';
       clearSearchBtn.classList.remove('hidden');
       renderCategories();
-      renderScripts();
+      loadScriptsFromAPI();
       document.getElementById('database-section').scrollIntoView({ behavior: 'smooth' });
     });
   }
@@ -351,13 +486,13 @@ function setupEventListeners() {
       e.preventDefault();
       openInfoModal(
         '📖 Руководство по работе с базой',
-        `<p>Уважаемый педагог! База TeacherProblem создана для мгновенного поиска проверенных речевых алгоритмов.</p>
-        <h3>Как использовать:</h3>
+        `<p>Уважаемый педагог! База TeacherProblem с PostgreSQL хранит проверенные речевые алгоритмы.</p>
+        <h3>Инструкция:</h3>
         <ol style="margin-left:20px; margin-top:8px;">
-          <li>Выберите категорию ситуации в верхнем меню или с помощью кнопок-тегов.</li>
-          <li>Используйте строку поиска для ввода ключевого слова (например: "оценки", "хамство").</li>
-          <li>Нажмите на карточку, чтобы открыть полный скрипт ответа и советы.</li>
-          <li>Нажмите «📋 Копировать текст», чтобы вставить готовый ответ в мессенджер.</li>
+          <li>Выберите категорию ситуации или используйте поиск.</li>
+          <li>Нажмите на карточку для просмотра готового скрипта.</li>
+          <li>Скопируйте текст в один клик.</li>
+          <li>Администраторы могут управлять аккаунтами учителей в Панели администратора.</li>
         </ol>`
       );
     });
@@ -368,52 +503,144 @@ function setupEventListeners() {
       e.preventDefault();
       openInfoModal(
         'ℹ️ О проекте TeacherProblem',
-        `<p><strong>TeacherProblem</strong> — современная электронная картотека речевых скриптов и методических рекомендаций для молодых и практикующих учителей.</p>
-        <p style="margin-top:10px;">Проект призван снизить уровень стресса при решении сложной коммуникации с родителями, школьниками и школьной администрацией.</p>`
+        `<p><strong>TeacherProblem</strong> — система скриптов общения для педагогов с полноценной базой данных PostgreSQL.</p>`
       );
     });
   }
 
   // Login triggers
-  const triggerLogin = () => {
+  headerLoginBtn.addEventListener('click', () => loginModalEl.classList.remove('hidden'));
+  welcomeLoginBtn.addEventListener('click', () => {
+    document.getElementById('login-email').value = 'teacher@school.edu.ru';
+    document.getElementById('login-password').value = 'teacher123';
     loginModalEl.classList.remove('hidden');
-  };
-
-  headerLoginBtn.addEventListener('click', triggerLogin);
-  welcomeLoginBtn.addEventListener('click', triggerLogin);
-
-  // Quick Demo Login
-  const performDemoLogin = () => {
-    isAuthenticated = true;
-    updateUserUI();
-    closeModals();
-    showToast(`Добро пожаловать, ${currentUser.name}!`);
-  };
-
-  welcomeDemoBtn.addEventListener('click', performDemoLogin);
-  quickDemoLoginBtn.addEventListener('click', performDemoLogin);
-
-  // Login Form Submit
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const nameVal = document.getElementById('login-name').value.trim();
-    const roleVal = document.getElementById('login-subject').value.trim();
-    const emailVal = document.getElementById('login-email').value.trim();
-
-    if (nameVal) currentUser.name = nameVal;
-    if (roleVal) currentUser.role = roleVal;
-    if (emailVal) currentUser.email = emailVal;
-
-    isAuthenticated = true;
-    updateUserUI();
-    closeModals();
-    showToast(`Успешный вход! С возвращением, ${currentUser.name}`);
   });
 
+  welcomeAdminLoginBtn.addEventListener('click', () => {
+    document.getElementById('login-email').value = 'admin@school.edu.ru';
+    document.getElementById('login-password').value = 'admin123';
+    loginModalEl.classList.remove('hidden');
+  });
+
+  quickAdminLoginBtn.addEventListener('click', () => {
+    document.getElementById('login-email').value = 'admin@school.edu.ru';
+    document.getElementById('login-password').value = 'admin123';
+  });
+
+  // Login Form Submit (SQL Backend Auth)
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ошибка аутентификации');
+
+      currentUser = data.user;
+      isAuthenticated = true;
+      updateUserUI();
+      closeModals();
+      showToast(`С возвращением, ${currentUser.name}!`);
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
+
+  // Open Admin Panel
+  const openAdminPanel = async () => {
+    await loadAdminUsers();
+    adminModalEl.classList.remove('hidden');
+  };
+
+  adminPanelMenuBtn.addEventListener('click', openAdminPanel);
+  adminPanelDropdownBtn.addEventListener('click', openAdminPanel);
+  if (openAdminMainBtn) openAdminMainBtn.addEventListener('click', openAdminPanel);
+
+  // Admin Panel: Add User Button
+  adminAddUserBtn.addEventListener('click', () => openUserFormModal());
+
+  // Admin Panel: Edit & Delete User Delegation
+  adminUsersTbody.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('.edit-user-btn');
+    const deleteBtn = e.target.closest('.delete-user-btn');
+
+    if (editBtn) {
+      const userId = parseInt(editBtn.dataset.userId, 10);
+      openUserFormModal(userId);
+    }
+
+    if (deleteBtn) {
+      const userId = parseInt(deleteBtn.dataset.userId, 10);
+      if (confirm('Вы уверены, что хотите удалить этот аккаунт учителя из БД?')) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/users/${userId}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Ошибка удаления аккаунта');
+          showToast('Аккаунт учителя успешно удален из БД');
+          await loadAdminUsers();
+        } catch (err) {
+          showToast(err.message);
+        }
+      }
+    }
+  });
+
+  // Admin Panel: Save User Form (Add / Edit SQL)
+  userAccountForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = formUserId.value;
+    const name = formUserName.value.trim();
+    const email = formUserEmail.value.trim();
+    const role = formUserRole.value.trim();
+    const password = formUserPassword.value.trim();
+    const is_admin = formUserIsAdmin.checked;
+
+    const payload = { name, email, role, is_admin };
+    if (password) payload.password = password;
+
+    try {
+      let res;
+      if (id) {
+        // Update user
+        res = await fetch(`${API_BASE_URL}/users/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Create new user
+        res = await fetch(`${API_BASE_URL}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Ошибка сохранения пользователя');
+      }
+
+      userFormModalEl.classList.add('hidden');
+      showToast(id ? 'Аккаунт учителя обновился!' : 'Новый аккаунт создан в БД!');
+      await loadAdminUsers();
+    } catch (err) {
+      showToast(err.message);
+    }
+  });
+
+  userFormCloseBtn.addEventListener('click', () => userFormModalEl.classList.add('hidden'));
+  userFormCancelBtn.addEventListener('click', () => userFormModalEl.classList.add('hidden'));
+
   // Photo change interactive area
-  // Clicking avatar or plus badge opens file dialog
   avatarInteractiveZone.addEventListener('click', (e) => {
-    // If clicking directly on photo/plus badge, open file picker
     if (!e.target.closest('.profile-dropdown-menu')) {
       avatarFileInput.click();
     }
@@ -433,10 +660,12 @@ function setupEventListeners() {
   // Settings Modal Open
   settingsDropdownBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    settingsNameInput.value = currentUser.name;
-    settingsRoleInput.value = currentUser.role;
-    settingsEmailInput.value = currentUser.email;
-    settingsAvatarImg.src = currentUser.avatar;
+    if (currentUser) {
+      settingsNameInput.value = currentUser.name;
+      settingsRoleInput.value = currentUser.role;
+      settingsEmailInput.value = currentUser.email;
+      if (currentUser.avatar) settingsAvatarImg.src = currentUser.avatar;
+    }
     settingsModalEl.classList.remove('hidden');
   });
 
@@ -444,14 +673,31 @@ function setupEventListeners() {
     avatarFileInput.click();
   });
 
-  settingsForm.addEventListener('submit', (e) => {
+  settingsForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!currentUser) return;
+
     currentUser.name = settingsNameInput.value.trim();
     currentUser.role = settingsRoleInput.value.trim();
     currentUser.email = settingsEmailInput.value.trim();
+
+    try {
+      await fetch(`${API_BASE_URL}/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: currentUser.name,
+          role: currentUser.role,
+          email: currentUser.email
+        })
+      });
+    } catch (err) {
+      console.warn('Ошибка сохранения профиля:', err);
+    }
+
     updateUserUI();
     closeModals();
-    showToast('Настройки профиля сохранены');
+    showToast('Настройки профиля сохранены в БД');
   });
 
   settingsCancelBtn.addEventListener('click', closeModals);
@@ -460,8 +706,9 @@ function setupEventListeners() {
   logoutDropdownBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     isAuthenticated = false;
+    currentUser = null;
     updateUserUI();
-    showToast('Вы успешно вышли из системы');
+    showToast('Вы вышли из системы');
   });
 
   // Category chip click
@@ -471,7 +718,7 @@ function setupEventListeners() {
 
     activeCategory = chip.dataset.categoryId;
     renderCategories();
-    renderScripts();
+    loadScriptsFromAPI();
   });
 
   // Search input
@@ -482,7 +729,7 @@ function setupEventListeners() {
     } else {
       clearSearchBtn.classList.add('hidden');
     }
-    renderScripts();
+    loadScriptsFromAPI();
   });
 
   // Clear search
@@ -490,7 +737,7 @@ function setupEventListeners() {
     searchQuery = '';
     searchInputEl.value = '';
     clearSearchBtn.classList.add('hidden');
-    renderScripts();
+    loadScriptsFromAPI();
   });
 
   // Reset filters
@@ -500,7 +747,7 @@ function setupEventListeners() {
     searchInputEl.value = '';
     clearSearchBtn.classList.add('hidden');
     renderCategories();
-    renderScripts();
+    loadScriptsFromAPI();
   };
 
   resetFiltersBtn.addEventListener('click', resetFilters);
@@ -519,11 +766,12 @@ function setupEventListeners() {
   addFormCancelBtn.addEventListener('click', closeModals);
   loginModalCloseBtn.addEventListener('click', closeModals);
   settingsModalCloseBtn.addEventListener('click', closeModals);
+  adminModalCloseBtn.addEventListener('click', closeModals);
   infoModalCloseBtn.addEventListener('click', closeModals);
 
   // Close modal on background click
   window.addEventListener('click', (e) => {
-    if ([scriptModalEl, addModalEl, loginModalEl, settingsModalEl, infoModalEl].includes(e.target)) {
+    if ([scriptModalEl, addModalEl, loginModalEl, settingsModalEl, adminModalEl, userFormModalEl, infoModalEl].includes(e.target)) {
       closeModals();
     }
   });
@@ -542,8 +790,8 @@ function setupEventListeners() {
     });
   }
 
-  // Submit new script form
-  addScriptForm.addEventListener('submit', (e) => {
+  // Submit new script form (POST to SQL API)
+  addScriptForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const category = document.getElementById('form-category').value;
@@ -556,22 +804,32 @@ function setupEventListeners() {
     const tips = tipsRaw ? tipsRaw.split('\n').filter(t => t.trim() !== '') : [];
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(t => t !== '') : [];
 
-    const newScript = {
-      id: `script-${Date.now()}`,
+    const payload = {
       category,
       title,
       description: situation.slice(0, 100) + '...',
       situation,
-      scriptText,
+      script_text: scriptText,
       tips,
       tags
     };
 
-    scripts.unshift(newScript);
-    addScriptForm.reset();
-    closeModals();
-    renderScripts();
-    showToast('Новый скрипт успешно добавлен в базу!');
+    try {
+      const res = await fetch(`${API_BASE_URL}/scripts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Ошибка сохранения скрипта в БД');
+
+      addScriptForm.reset();
+      closeModals();
+      await loadScriptsFromAPI();
+      showToast('Новый скрипт успешно сохранен в базе!');
+    } catch (err) {
+      showToast(err.message);
+    }
   });
 }
 

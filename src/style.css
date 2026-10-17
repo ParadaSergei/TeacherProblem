@@ -68,10 +68,7 @@ body {
   padding: 0 24px;
 }
 
-/* ==========================================================================
-   Header & Navbar
-   ========================================================================== */
-
+/* Navbar */
 .navbar {
   background: #ffffff;
   border-bottom: 1px solid var(--border-color);
@@ -161,6 +158,15 @@ body {
   color: var(--primary);
 }
 
+.nav-dropdown-btn.admin-btn-highlight {
+  color: #7928ca;
+  background-color: #f3e8ff;
+}
+
+.nav-dropdown-btn.admin-btn-highlight:hover {
+  background-color: #e9d5ff;
+}
+
 .nav-dropdown-btn .chevron {
   font-size: 0.8rem;
   transition: transform var(--transition-fast);
@@ -209,10 +215,7 @@ body {
   color: var(--primary);
 }
 
-/* ==========================================================================
-   User Profile Avatar & Hover Dropdown (Far Right)
-   ========================================================================== */
-
+/* User Profile Avatar & Hover Dropdown */
 .nav-user-area {
   display: flex;
   align-items: center;
@@ -241,7 +244,6 @@ body {
   color: var(--text-main);
 }
 
-/* Interactive Avatar Zone */
 .avatar-interactive-zone {
   position: relative;
   width: 48px;
@@ -264,7 +266,6 @@ body {
   transform: scale(1.04);
 }
 
-/* Avatar Plus (+) Badge indicating photo change */
 .avatar-plus-badge {
   position: absolute;
   top: -2px;
@@ -292,7 +293,6 @@ body {
   background-color: var(--primary-hover);
 }
 
-/* Smooth Profile Hover Dropdown List */
 .profile-dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -370,10 +370,7 @@ body {
   color: var(--danger-hover);
 }
 
-/* ==========================================================================
-   Welcome Screen (Unauthenticated View)
-   ========================================================================== */
-
+/* Welcome Screen */
 .welcome-hero {
   background: linear-gradient(135deg, #0078d4 0%, #004578 100%);
   color: #ffffff;
@@ -460,10 +457,7 @@ body {
   opacity: 0.85;
 }
 
-/* ==========================================================================
-   Dashboard Banner (Authenticated View)
-   ========================================================================== */
-
+/* Dashboard Banner */
 .dashboard-banner {
   background: linear-gradient(90deg, #eff6fc 0%, #e1dfdd 100%);
   border-bottom: 1px solid var(--border-color);
@@ -490,10 +484,12 @@ body {
   font-size: 0.95rem;
 }
 
-/* ==========================================================================
-   Database & Search Section
-   ========================================================================== */
+.banner-actions {
+  display: flex;
+  gap: 12px;
+}
 
+/* Database & Search Section */
 .database-section {
   padding-top: 32px;
   padding-bottom: 60px;
@@ -607,10 +603,7 @@ body {
   color: var(--text-secondary);
 }
 
-/* ==========================================================================
-   Scripts Grid & Cards
-   ========================================================================== */
-
+/* Scripts Grid & Cards */
 .scripts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -712,10 +705,120 @@ body {
   gap: 4px;
 }
 
-/* ==========================================================================
-   Buttons System
-   ========================================================================== */
+/* Admin Panel & SQL Tables */
+.modal-card.modal-lg {
+  max-width: 840px;
+}
 
+.admin-toolbar {
+  margin: 16px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.admin-table th {
+  background-color: var(--secondary-bg);
+  padding: 12px 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.role-badge.admin {
+  background-color: #f3e8ff;
+  color: #7928ca;
+}
+
+.role-badge.teacher {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary-border);
+}
+
+.btn-icon.danger:hover {
+  background-color: #fde8e8;
+  border-color: var(--danger);
+}
+
+.form-checkbox-group {
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Buttons System */
 .btn {
   font-family: var(--font-family);
   display: inline-flex;
@@ -822,10 +925,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* ==========================================================================
-   Modals System
-   ========================================================================== */
-
+/* Modals */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -855,7 +955,7 @@ body {
 }
 
 .modal-card.modal-sm {
-  max-width: 440px;
+  max-width: 460px;
 }
 
 .modal-close-btn {
@@ -961,7 +1061,7 @@ body {
   top: -2px;
 }
 
-/* Form Styles */
+/* Forms */
 .form-body {
   display: flex;
   flex-direction: column;
@@ -1045,10 +1145,7 @@ body {
   color: var(--primary);
 }
 
-/* ==========================================================================
-   Toast & Footer
-   ========================================================================== */
-
+/* Toast & Footer */
 .toast {
   position: fixed;
   bottom: 24px;

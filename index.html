@@ -49,6 +49,13 @@
             </div>
           </div>
 
+          <!-- Admin Panel Link (Visible for Admins) -->
+          <div class="nav-dropdown hidden" id="admin-nav-dropdown">
+            <button class="nav-dropdown-btn admin-btn-highlight" id="admin-panel-menu-btn">
+              <span>🛡️ Админ панель</span>
+            </button>
+          </div>
+
           <div class="nav-dropdown">
             <button class="nav-dropdown-btn">
               <span>ℹ️ Помощь</span>
@@ -101,6 +108,9 @@
                 <button id="settings-dropdown-btn" class="dropdown-item-btn">
                   <span class="item-icon">⚙️</span> Настройки
                 </button>
+                <button id="admin-panel-dropdown-btn" class="dropdown-item-btn hidden">
+                  <span class="item-icon">🛡️</span> Админ панель
+                </button>
                 <div class="dropdown-divider"></div>
                 <button id="logout-dropdown-btn" class="dropdown-item-btn danger">
                   <span class="item-icon">🚪</span> Выход
@@ -122,14 +132,14 @@
           <div class="welcome-badge">👩‍🏫 Платформа поддержки педагогов</div>
           <h1 class="welcome-title">Добро пожаловать в TeacherProblem!</h1>
           <p class="welcome-subtitle">
-            Персональный онлайн-помощник и база проверенных скриптов для решения сложных ситуаций в школе: с учениками, родителями и администрацией.
+            Персональный онлайн-помощник и база проверенных скриптов (PostgreSQL) для решения сложных ситуаций в школе.
           </p>
           <div class="welcome-actions">
             <button id="welcome-login-btn" class="btn btn-hero-primary">
-              🔑 Войти под учетной записью учителя
+              🔑 Войти как учитель
             </button>
-            <button id="welcome-demo-btn" class="btn btn-hero-secondary">
-              ✨ Быстрый демо-вход
+            <button id="welcome-admin-login-btn" class="btn btn-hero-secondary">
+              🛡️ Вход администратора
             </button>
           </div>
           <div class="welcome-features">
@@ -139,14 +149,14 @@
               <p>Точные фразы и формулировки для разрешения конфликтов.</p>
             </div>
             <div class="feature-card">
-              <span class="feature-icon">🛡️</span>
-              <h4>Защита границ</h4>
-              <p>Как экологично общаться с родителями в мессенджерах.</p>
+              <span class="feature-icon">🗄️</span>
+              <h4>PostgreSQL База</h4>
+              <p>Надежное централизованное хранение скриптов и аккаунтов.</p>
             </div>
             <div class="feature-card">
-              <span class="feature-icon">⭐</span>
-              <h4>Личный кабинет</h4>
-              <p>Сохраняйте свои наработки и настраивайте личный профиль.</p>
+              <span class="feature-icon">🛡️</span>
+              <h4>Админ Панель</h4>
+              <p>Управление аккаунтами учителей (добавление, сброс, роли).</p>
             </div>
           </div>
         </div>
@@ -159,9 +169,14 @@
             <h2>С возвращением, <span id="banner-teacher-name">Мария Сергеевна</span>! 👋</h2>
             <p>Выберите нужную категорию или воспользуйтесь быстрым поиском по базе решений.</p>
           </div>
-          <button id="add-script-main-btn" class="btn btn-primary shadow-btn">
-            <span>+ Добавить скрипт</span>
-          </button>
+          <div class="banner-actions">
+            <button id="add-script-main-btn" class="btn btn-primary shadow-btn">
+              <span>+ Добавить скрипт</span>
+            </button>
+            <button id="open-admin-main-btn" class="btn btn-secondary hidden">
+              <span>🛡️ Управление аккаунтами</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -191,7 +206,7 @@
 
         <!-- Stats Bar & Reset Filters -->
         <div class="filter-status-bar">
-          <div class="stats-text" id="stats-text">Загрузка скриптов...</div>
+          <div class="stats-text" id="stats-text">Загрузка скриптов из БД...</div>
           <button id="reset-filters-btn" class="btn-text hidden">Сбросить фильтры</button>
         </div>
 
@@ -216,11 +231,94 @@
     <footer class="footer">
       <div class="container footer-content">
         <div class="footer-brand">
-          <strong>TeacherProblem</strong> — Интерактивная база алгоритмов общения для педагогов.
+          <strong>TeacherProblem</strong> — Интерактивная база алгоритмов общения для педагогов (PostgreSQL Integration).
         </div>
         <p class="footer-meta">Спроектировано с заботой о комфорте и времени учителя. Segoe UI Theme Interface.</p>
       </div>
     </footer>
+  </div>
+
+  <!-- Modal: Admin Panel (Manage Accounts: Add, Edit, Delete) -->
+  <div id="admin-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-lg">
+      <button class="modal-close-btn" id="admin-modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <div class="modal-badge">Панель администратора</div>
+        <h2>🛡️ Управление аккаунтами учителей (PostgreSQL)</h2>
+        <p class="subtitle">Добавление, редактирование и удаление учетных записей сотрудников</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button id="admin-add-user-btn" class="btn btn-primary btn-sm">
+          <span>+ Добавить аккаунт учителя</span>
+        </button>
+      </div>
+
+      <!-- Users SQL Table -->
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Учитель / ФИО</th>
+              <th>Email / Логин</th>
+              <th>Должность / Предмет</th>
+              <th>Роль</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-tbody">
+            <!-- Rendered dynamically from PostgreSQL database -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit User Account (Admin) -->
+  <div id="user-form-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <button class="modal-close-btn" id="user-form-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <h2 id="user-form-modal-title">Добавить аккаунт</h2>
+        <p class="subtitle">Заполните учетные данные пользователя</p>
+      </div>
+      <form id="user-account-form" class="modal-body form-body">
+        <input type="hidden" id="form-user-id" value="" />
+
+        <div class="form-group">
+          <label for="form-user-name">ФИО / Имя *</label>
+          <input type="text" id="form-user-name" placeholder="Например: Елены Викторовны" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-user-email">Email / Логин *</label>
+          <input type="email" id="form-user-email" placeholder="elena@school.edu.ru" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-user-role">Предмет / Должность</label>
+          <input type="text" id="form-user-role" placeholder="Учитель математики" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-user-password">Пароль</label>
+          <input type="password" id="form-user-password" placeholder="Оставьте пустым, если не меняете" />
+        </div>
+
+        <div class="form-group form-checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="form-user-is-admin" />
+            <span>Права Администратора (Админ Панель)</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="user-form-cancel-btn" class="btn btn-secondary">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить в БД</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Modal: Login / Auth -->
@@ -230,28 +328,20 @@
       <div class="modal-header">
         <div class="modal-badge">Вход в систему</div>
         <h2>Учетная запись учителя</h2>
-        <p class="subtitle">Введите ваши данные для входа в кабинет</p>
+        <p class="subtitle">Введите email и пароль для входа в кабинет</p>
       </div>
       <form id="login-form" class="modal-body form-body">
-        <div class="form-group">
-          <label for="login-name">ФИО учителя / Имя</label>
-          <input type="text" id="login-name" value="Мария Сергеевна" required placeholder="Например: Мария Сергеевна" />
-        </div>
-        <div class="form-group">
-          <label for="login-subject">Предмет / Должность</label>
-          <input type="text" id="login-subject" value="Учитель начальных классов" placeholder="Например: Учитель математики" />
-        </div>
         <div class="form-group">
           <label for="login-email">Электронная почта</label>
           <input type="email" id="login-email" value="teacher@school.edu.ru" required placeholder="teacher@school.edu.ru" />
         </div>
         <div class="form-group">
           <label for="login-password">Пароль</label>
-          <input type="password" id="login-password" value="••••••••" required />
+          <input type="password" id="login-password" value="teacher123" required />
         </div>
         <div class="form-actions vertical">
           <button type="submit" class="btn btn-primary btn-block">Войти в личный кабинет</button>
-          <button type="button" id="quick-demo-login-btn" class="btn btn-secondary btn-block">Быстрый демо-вход</button>
+          <button type="button" id="quick-admin-login-btn" class="btn btn-secondary btn-block">🔑 Вход под Админом (admin@school.edu.ru)</button>
         </div>
       </form>
     </div>
@@ -263,7 +353,7 @@
       <button class="modal-close-btn" id="settings-modal-close-btn" aria-label="Закрыть">✕</button>
       <div class="modal-header">
         <h2>⚙️ Настройки профиля учителя</h2>
-        <p class="subtitle">Управление личными данными и аккаунтом</p>
+        <p class="subtitle">Управление личными данными и аккаунтом в базе</p>
       </div>
       <form id="settings-form" class="modal-body form-body">
         <div class="settings-avatar-preview">
@@ -338,7 +428,7 @@
     <div class="modal-card">
       <button class="modal-close-btn" id="add-modal-close-btn" aria-label="Закрыть">✕</button>
       <div class="modal-header">
-        <h2>Предложить новый скрипт</h2>
+        <h2>Предложить новый скрипт в БД</h2>
         <p class="subtitle">Поделитесь вашим опытом решения сложной ситуации</p>
       </div>
       <form id="add-script-form" class="modal-body form-body">
@@ -379,7 +469,7 @@
 
         <div class="form-actions">
           <button type="button" id="add-form-cancel-btn" class="btn btn-secondary">Отмена</button>
-          <button type="submit" class="btn btn-primary">Сохранить скрипт</button>
+          <button type="submit" class="btn btn-primary">Сохранить скрипт в БД</button>
         </div>
       </form>
     </div>
