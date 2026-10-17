@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeacherProblem — База скриптов для молодых педагогов</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="container navbar-container">
+        <div class="brand">
+          <span class="brand-logo">👩‍🏫</span>
+          <div class="brand-text">
+            <span class="brand-title">TeacherProblem</span>
+            <span class="brand-subtitle">База скриптов для молодых учителей</span>
+          </div>
+        </div>
+        <div class="nav-actions">
+          <button id="add-script-btn" class="btn btn-primary">
+            <span>+ Добавить скрипт</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <h1 class="hero-title">Готовые ответы на сложные ситуации в школе</h1>
+        <p class="hero-description">
+          Проверенные алгоритмы общения с учениками, родителями и коллегией. Повышайте уверенность и ускоряйте адаптацию в начале карьеры.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Поиск по ситуациям, словам, ключевым тегам..."
+            aria-label="Поиск по ситуациям"
+          />
+          <button id="clear-search-btn" class="btn-clear hidden" title="Очистить поиск">✕</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="container main-content">
+      <!-- Category Navigation Filter -->
+      <nav class="categories-wrapper">
+        <div id="categories-list" class="categories-list">
+          <!-- Dynamic category chips will be injected here -->
+        </div>
+      </nav>
+
+      <!-- Stats Bar & Active Filters -->
+      <div class="filter-status-bar">
+        <div class="stats-text" id="stats-text">Загрузка скриптов...</div>
+        <button id="reset-filters-btn" class="btn-text hidden">Сбросить фильтры</button>
+      </div>
+
+      <!-- Scripts Grid -->
+      <div id="scripts-grid" class="scripts-grid">
+        <!-- Script cards will be rendered here -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">🔎</div>
+        <h3>Ничего не найдено</h3>
+        <p>Попробуйте изменить запрос или выберите другую категорию.</p>
+        <button id="empty-reset-btn" class="btn btn-secondary">Показать все скрипты</button>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer-content">
+        <p><strong>TeacherProblem</strong> — База практических скриптов общения для педагогов.</p>
+        <p class="footer-meta">Помогает повысить качество и скорость адаптации молодого учителя в школе.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal for Script Detail -->
+  <div id="script-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <span class="badge" id="modal-category">Категория</span>
+        <h2 id="modal-title" class="modal-title">Название ситуации</h2>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h4>📌 Ситуация:</h4>
+          <p id="modal-situation" class="situation-box"></p>
+        </div>
+
+        <div class="modal-section">
+          <div class="section-title-wrapper">
+            <h4>💬 Готовый скрипт ответа:</h4>
+            <button id="modal-copy-btn" class="btn btn-sm btn-copy">
+              <span>📋 Копировать текст</span>
+            </button>
+          </div>
+          <div id="modal-script-text" class="script-box"></div>
+        </div>
+
+        <div class="modal-section" id="modal-tips-section">
+          <h4>💡 Советы и акценты:</h4>
+          <ul id="modal-tips-list" class="tips-list"></ul>
+        </div>
+
+        <div class="modal-section">
+          <div id="modal-tags" class="tags-wrapper"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Adding New Script -->
+  <div id="add-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="add-modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <h2>Предложить новый скрипт</h2>
+        <p class="subtitle">Поделитесь вашим опытом решения сложной ситуаций</p>
+      </div>
+      <form id="add-script-form" class="modal-body form-body">
+        <div class="form-group">
+          <label for="form-category">Категория *</label>
+          <select id="form-category" required>
+            <option value="students">Ученики / Школьники</option>
+            <option value="parents">Родители</option>
+            <option value="colleagues">Коллеги и Администрация</option>
+            <option value="discipline">Дисциплина на уроке</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="form-title">Заголовок ситуации *</label>
+          <input type="text" id="form-title" placeholder="Например: Ученик постоянно опоздает на урок" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-situation">Описание конфликтной ситуации *</label>
+          <textarea id="form-situation" rows="2" placeholder="Опишите, что происходит или что говорят..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-script">Рекомендуемый скрипт ответа *</label>
+          <textarea id="form-script" rows="4" placeholder="Напишите рекомендуемый текст ответа педагога..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-tips">Советы (каждый с новой строки)</label>
+          <textarea id="form-tips" rows="3" placeholder="Не вступайте в спор&#10;Перенесите разговор на перерыв"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-tags">Теги (через запятую)</label>
+          <input type="text" id="form-tags" placeholder="Опоздания, Дисциплина, Разговор" />
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="add-form-cancel-btn" class="btn btn-secondary">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить скрипт</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast hidden">Текст скопирован в буфер обмена!</div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
