@@ -705,13 +705,44 @@ body {
   gap: 4px;
 }
 
-/* Admin Panel & SQL Tables */
+/* Admin Panel Tabs & SQL Tables */
 .modal-card.modal-lg {
-  max-width: 840px;
+  max-width: 880px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 2px solid var(--border-color);
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-family: var(--font-family);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: -2px;
+}
+
+.admin-tab-btn:hover {
+  color: var(--primary);
+}
+
+.admin-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .admin-toolbar {
-  margin: 16px 0;
+  margin: 12px 0 16px 0;
   display: flex;
   justify-content: flex-end;
 }

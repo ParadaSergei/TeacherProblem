@@ -238,40 +238,75 @@
     </footer>
   </div>
 
-  <!-- Modal: Admin Panel (Manage Accounts: Add, Edit, Delete) -->
+  <!-- Modal: Admin Panel (Manage Accounts & Scripts in PostgreSQL) -->
   <div id="admin-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card modal-lg">
       <button class="modal-close-btn" id="admin-modal-close-btn" aria-label="Закрыть">✕</button>
       <div class="modal-header">
         <div class="modal-badge">Панель администратора</div>
-        <h2>🛡️ Управление аккаунтами учителей (PostgreSQL)</h2>
-        <p class="subtitle">Добавление, редактирование и удаление учетных записей сотрудников</p>
+        <h2>🛡️ Панель управления PostgreSQL БД</h2>
+        <p class="subtitle">Централизованное управление аккаунтами учителей и ситуационными скриптами</p>
       </div>
 
-      <div class="admin-toolbar">
-        <button id="admin-add-user-btn" class="btn btn-primary btn-sm">
-          <span>+ Добавить аккаунт учителя</span>
-        </button>
+      <!-- Admin Panel Tabs -->
+      <div class="admin-tabs">
+        <button id="admin-tab-users-btn" class="admin-tab-btn active">👥 Управление аккаунтами</button>
+        <button id="admin-tab-scripts-btn" class="admin-tab-btn">📝 Скрипты в базе данных</button>
       </div>
 
-      <!-- Users SQL Table -->
-      <div class="table-responsive">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Учитель / ФИО</th>
-              <th>Email / Логин</th>
-              <th>Должность / Предмет</th>
-              <th>Роль</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody id="admin-users-tbody">
-            <!-- Rendered dynamically from PostgreSQL database -->
-          </tbody>
-        </table>
+      <!-- Tab Content 1: Users Table -->
+      <div id="admin-tab-users-content" class="admin-tab-content">
+        <div class="admin-toolbar">
+          <button id="admin-add-user-btn" class="btn btn-primary btn-sm">
+            <span>+ Добавить аккаунт учителя</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Учитель / ФИО</th>
+                <th>Email / Логин</th>
+                <th>Должность / Предмет</th>
+                <th>Роль</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody">
+              <!-- Rendered dynamically from PostgreSQL database -->
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- Tab Content 2: Scripts Table -->
+      <div id="admin-tab-scripts-content" class="admin-tab-content hidden">
+        <div class="admin-toolbar">
+          <button id="admin-add-script-btn" class="btn btn-primary btn-sm">
+            <span>+ Добавить ситуационный скрипт в БД</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Категория</th>
+                <th>Заголовок ситуационного скрипта</th>
+                <th>Теги</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="admin-scripts-tbody">
+              <!-- Rendered dynamically from PostgreSQL database -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -327,21 +362,23 @@
       <button class="modal-close-btn" id="login-modal-close-btn" aria-label="Закрыть">✕</button>
       <div class="modal-header">
         <div class="modal-badge">Вход в систему</div>
-        <h2>Учетная запись учителя</h2>
-        <p class="subtitle">Введите email и пароль для входа в кабинет</p>
+        <h2>Учетная запись</h2>
+        <p class="subtitle">Авторизация по логину и паролю из базы данных</p>
       </div>
       <form id="login-form" class="modal-body form-body">
         <div class="form-group">
-          <label for="login-email">Электронная почта</label>
-          <input type="email" id="login-email" value="teacher@school.edu.ru" required placeholder="teacher@school.edu.ru" />
+          <label for="login-email">Электронная почта (Email)</label>
+          <input type="email" id="login-email" required placeholder="example@school.edu.ru" />
         </div>
         <div class="form-group">
           <label for="login-password">Пароль</label>
-          <input type="password" id="login-password" value="teacher123" required />
+          <input type="password" id="login-password" required placeholder="••••••••" />
         </div>
         <div class="form-actions vertical">
-          <button type="submit" class="btn btn-primary btn-block">Войти в личный кабинет</button>
-          <button type="button" id="quick-admin-login-btn" class="btn btn-secondary btn-block">🔑 Вход под Админом (admin@school.edu.ru)</button>
+          <button type="submit" class="btn btn-primary btn-block">Войти через Базу Данных</button>
+        </div>
+        <div class="auth-notice text-center" style="margin-top: 12px; font-size: 0.85rem; color: #605e5c;">
+          ℹ️ Регистрация аккаунтов выполняется только Администратором в Админ-панели.
         </div>
       </form>
     </div>

@@ -1,4 +1,4 @@
-import { CATEGORIES, INITIAL_SCRIPTS } from './data/scriptsData.js';
+import { CATEGORIES } from './data/scriptsData.js';
 
 // API Base URL
 const API_BASE_URL = 'http://localhost:3001/api';
@@ -77,7 +77,6 @@ const addScriptForm = document.getElementById('add-script-form');
 const loginModalEl = document.getElementById('login-modal');
 const loginModalCloseBtn = document.getElementById('login-modal-close-btn');
 const loginForm = document.getElementById('login-form');
-const quickAdminLoginBtn = document.getElementById('quick-admin-login-btn');
 
 const settingsModalEl = document.getElementById('settings-modal');
 const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
@@ -89,11 +88,19 @@ const settingsAvatarImg = document.getElementById('settings-avatar-img');
 const settingsChangePhotoBtn = document.getElementById('settings-change-photo-btn');
 const settingsCancelBtn = document.getElementById('settings-cancel-btn');
 
-// Admin Panel Modal Elements
+// Admin Panel Modal Elements & Tabs
 const adminModalEl = document.getElementById('admin-modal');
 const adminModalCloseBtn = document.getElementById('admin-modal-close-btn');
+const adminTabUsersBtn = document.getElementById('admin-tab-users-btn');
+const adminTabScriptsBtn = document.getElementById('admin-tab-scripts-btn');
+const adminTabUsersContent = document.getElementById('admin-tab-users-content');
+const adminTabScriptsContent = document.getElementById('admin-tab-scripts-content');
+
 const adminAddUserBtn = document.getElementById('admin-add-user-btn');
 const adminUsersTbody = document.getElementById('admin-users-tbody');
+
+const adminAddScriptBtn = document.getElementById('admin-add-script-btn');
+const adminScriptsTbody = document.getElementById('admin-scripts-tbody');
 
 // Add / Edit User Account Modal Elements
 const userFormModalEl = document.getElementById('user-form-modal');
@@ -157,9 +164,10 @@ async function loadScriptsFromAPI() {
 
     renderScripts();
   } catch (err) {
-    console.warn('⚠️ Используется локальная резервная копия скриптов:', err);
-    scripts = [...INITIAL_SCRIPTS];
+    console.warn('⚠️ Ошибка загрузки скриптов из базы данных:', err);
+    scripts = [];
     renderScripts();
+    statsTextEl.textContent = 'Не удалось загрузить данные из базы PostgreSQL';
   }
 }
 
@@ -320,6 +328,33 @@ function renderAdminUsersTable() {
       </td>
     </tr>
   `).join('');
+}
+
+// ADMIN PANEL: Render Scripts Table
+function renderAdminScriptsTable() {
+  adminScriptsTbody.innerHTML = scripts.map(s => {
+    const categoryObj = CATEGORIES.find(c => c.id === s.category) || { name: s.category, icon: '📝' };
+    const tagsHtml = (s.tags || []).map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join(' ');
+
+    return `
+      <tr>
+        <td><strong>#${s.id}</strong></td>
+        <td><span class="badge">${categoryObj.icon} ${categoryObj.name}</span></td>
+        <td>
+          <strong>${escapeHtml(s.title)}</strong>
+          <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:2px;">
+            ${escapeHtml((s.situation || '').slice(0, 70))}...
+          </div>
+        </td>
+        <td>${tagsHtml}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-icon danger delete-script-btn" data-script-id="${s.id}" title="Удалить скрипт из БД">🗑️ Удалить</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // ADMIN PANEL: Open Add/Edit Account Modal
@@ -511,20 +546,11 @@ function setupEventListeners() {
   // Login triggers
   headerLoginBtn.addEventListener('click', () => loginModalEl.classList.remove('hidden'));
   welcomeLoginBtn.addEventListener('click', () => {
-    document.getElementById('login-email').value = 'teacher@school.edu.ru';
-    document.getElementById('login-password').value = 'teacher123';
     loginModalEl.classList.remove('hidden');
   });
 
   welcomeAdminLoginBtn.addEventListener('click', () => {
-    document.getElementById('login-email').value = 'admin@school.edu.ru';
-    document.getElementById('login-password').value = 'admin123';
     loginModalEl.classList.remove('hidden');
-  });
-
-  quickAdminLoginBtn.addEventListener('click', () => {
-    document.getElementById('login-email').value = 'admin@school.edu.ru';
-    document.getElementById('login-password').value = 'admin123';
   });
 
   // Login Form Submit (SQL Backend Auth)
@@ -553,9 +579,28 @@ function setupEventListeners() {
     }
   });
 
+  // Admin Panel Tab Switching
+  adminTabUsersBtn.addEventListener('click', () => {
+    adminTabUsersBtn.classList.add('active');
+    adminTabScriptsBtn.classList.remove('active');
+    adminTabUsersContent.classList.remove('hidden');
+    adminTabScriptsContent.classList.add('hidden');
+  });
+
+  adminTabScriptsBtn.addEventListener('click', async () => {
+    adminTabScriptsBtn.classList.add('active');
+    adminTabUsersBtn.classList.remove('active');
+    adminTabScriptsContent.classList.remove('hidden');
+    adminTabUsersContent.classList.add('hidden');
+    await loadScriptsFromAPI();
+    renderAdminScriptsTable();
+  });
+
   // Open Admin Panel
   const openAdminPanel = async () => {
     await loadAdminUsers();
+    await loadScriptsFromAPI();
+    renderAdminScriptsTable();
     adminModalEl.classList.remove('hidden');
   };
 
@@ -563,8 +608,30 @@ function setupEventListeners() {
   adminPanelDropdownBtn.addEventListener('click', openAdminPanel);
   if (openAdminMainBtn) openAdminMainBtn.addEventListener('click', openAdminPanel);
 
-  // Admin Panel: Add User Button
+  // Admin Panel: Add User Button & Add Script Button
   adminAddUserBtn.addEventListener('click', () => openUserFormModal());
+  adminAddScriptBtn.addEventListener('click', () => {
+    addModalEl.classList.remove('hidden');
+  });
+
+  // Admin Panel: Delete Script Delegation
+  adminScriptsTbody.addEventListener('click', async (e) => {
+    const deleteBtn = e.target.closest('.delete-script-btn');
+    if (deleteBtn) {
+      const scriptId = deleteBtn.dataset.scriptId;
+      if (confirm('Вы уверены, что хотите удалить этот ситуационный скрипт из базы данных?')) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/scripts/${scriptId}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Ошибка удаления скрипта');
+          showToast('Скрипт успешно удален из базы данных');
+          await loadScriptsFromAPI();
+          renderAdminScriptsTable();
+        } catch (err) {
+          showToast(err.message);
+        }
+      }
+    }
+  });
 
   // Admin Panel: Edit & Delete User Delegation
   adminUsersTbody.addEventListener('click', async (e) => {
@@ -826,6 +893,7 @@ function setupEventListeners() {
       addScriptForm.reset();
       closeModals();
       await loadScriptsFromAPI();
+      renderAdminScriptsTable();
       showToast('Новый скрипт успешно сохранен в базе!');
     } catch (err) {
       showToast(err.message);

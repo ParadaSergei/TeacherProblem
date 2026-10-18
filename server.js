@@ -152,6 +152,30 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// DELETE /api/scripts/:id - Delete script (Admin Panel)
+app.delete('/api/scripts/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  try {
+    if (isPgConnected) {
+      const result = await pool.query('DELETE FROM scripts WHERE id = $1 RETURNING id', [id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Скрипт не найден' });
+      }
+      res.json({ message: 'Скрипт успешно удален из БД', id });
+    } else {
+      const idx = inMemoryScripts.findIndex(s => s.id === id);
+      if (idx === -1) {
+        return res.status(404).json({ error: 'Скрипт не найден' });
+      }
+      inMemoryScripts.splice(idx, 1);
+      res.json({ message: 'Скрипт успешно удален из памяти', id });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/users - List all users (Admin Panel)
 app.get('/api/users', async (req, res) => {
   try {
