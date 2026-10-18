@@ -3,93 +3,428 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TeacherProblem — База скриптов для молодых педагогов</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>TeacherProblem — База скриптов для учителей</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
+    <!-- Header Navigation Bar -->
     <header class="navbar">
       <div class="container navbar-container">
-        <div class="brand">
+
+        <!-- Left: Website Brand / Homepage Button -->
+        <button id="brand-home-btn" class="brand-btn" title="Перейти на главную страницу">
           <span class="brand-logo">👩‍🏫</span>
           <div class="brand-text">
             <span class="brand-title">TeacherProblem</span>
-            <span class="brand-subtitle">База скриптов для молодых учителей</span>
+            <span class="brand-subtitle">База скриптов учителя</span>
+          </div>
+        </button>
+
+        <!-- Middle: Top Submenus / Dropdown Navigation -->
+        <nav class="nav-menu">
+          <div class="nav-dropdown">
+            <button class="nav-dropdown-btn">
+              <span>📚 Материалы</span>
+              <span class="chevron">▾</span>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a href="#" class="dropdown-link category-quick-select" data-cat="all">Все ситуации</a>
+              <a href="#" class="dropdown-link category-quick-select" data-cat="students">Ученики и классы</a>
+              <a href="#" class="dropdown-link category-quick-select" data-cat="parents">Общение с родителями</a>
+              <a href="#" class="dropdown-link category-quick-select" data-cat="colleagues">Коллеги и завучи</a>
+              <a href="#" class="dropdown-link category-quick-select" data-cat="discipline">Дисциплина на уроке</a>
+            </div>
+          </div>
+
+          <div class="nav-dropdown">
+            <button class="nav-dropdown-btn">
+              <span>💡 Инструменты</span>
+              <span class="chevron">▾</span>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a href="#" id="menu-add-script-btn" class="dropdown-link">+ Добавить свой скрипт</a>
+              <a href="#" id="menu-search-focus" class="dropdown-link">🔍 Быстрый поиск</a>
+              <a href="#" id="menu-popular-scripts" class="dropdown-link">⭐ Избранные ситуации</a>
+            </div>
+          </div>
+
+          <!-- Admin Panel Link (Visible for Admins) -->
+          <div class="nav-dropdown hidden" id="admin-nav-dropdown">
+            <button class="nav-dropdown-btn admin-btn-highlight" id="admin-panel-menu-btn">
+              <span>🛡️ Админ панель</span>
+            </button>
+          </div>
+
+          <div class="nav-dropdown">
+            <button class="nav-dropdown-btn">
+              <span>ℹ️ Помощь</span>
+              <span class="chevron">▾</span>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a href="#" id="menu-guide-btn" class="dropdown-link">📖 Как пользоваться базой</a>
+              <a href="#" id="menu-about-btn" class="dropdown-link">ℹ️ О проекте TeacherProblem</a>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Right: Login Button OR User Profile Avatar Area -->
+        <div class="nav-user-area">
+          <!-- Unauthenticated State -->
+          <div id="logged-out-view" class="logged-out-view">
+            <button id="header-login-btn" class="btn btn-outline">
+              <span class="icon">🔑</span> Войти в систему
+            </button>
+          </div>
+
+          <!-- Authenticated State: Teacher Profile Avatar & Dropdown -->
+          <div id="logged-in-view" class="user-profile-wrapper hidden">
+            <div class="teacher-info-summary">
+              <span class="teacher-greeting">Здравствуйте,</span>
+              <span id="header-teacher-name" class="teacher-name">Мария Сергеевна</span>
+            </div>
+
+            <!-- Avatar Interactive Zone & Dropdown -->
+            <div class="avatar-interactive-zone" id="avatar-interactive-zone" title="Нажмите для смены фото или наведите для меню">
+              <span class="avatar-plus-badge" id="avatar-plus-badge" title="Сменить фото учителя">+</span>
+              <img
+                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150"
+                alt="Фото учителя"
+                id="teacher-avatar-img"
+                class="user-avatar-img"
+              />
+              <input type="file" id="avatar-file-input" accept="image/*" class="hidden" />
+
+              <!-- Smooth Hover Dropdown List -->
+              <div class="profile-dropdown-menu" id="profile-dropdown-menu">
+                <div class="profile-dropdown-header">
+                  <div id="profile-dropdown-name" class="profile-name">Мария Сергеевна</div>
+                  <div id="profile-dropdown-role" class="profile-role">Учитель начальных классов</div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <button id="change-photo-dropdown-btn" class="dropdown-item-btn">
+                  <span class="item-icon">📷</span> Сменить фото
+                </button>
+                <button id="settings-dropdown-btn" class="dropdown-item-btn">
+                  <span class="item-icon">⚙️</span> Настройки
+                </button>
+                <button id="admin-panel-dropdown-btn" class="dropdown-item-btn hidden">
+                  <span class="item-icon">🛡️</span> Админ панель
+                </button>
+                <div class="dropdown-divider"></div>
+                <button id="logout-dropdown-btn" class="dropdown-item-btn danger">
+                  <span class="item-icon">🚪</span> Выход
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="nav-actions">
-          <button id="add-script-btn" class="btn btn-primary">
-            <span>+ Добавить скрипт</span>
-          </button>
-        </div>
+
       </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="container">
-        <h1 class="hero-title">Готовые ответы на сложные ситуации в школе</h1>
-        <p class="hero-description">
-          Проверенные алгоритмы общения с учениками, родителями и коллегией. Повышайте уверенность и ускоряйте адаптацию в начале карьеры.
-        </p>
+    <!-- Main Content Container -->
+    <main class="main-wrapper">
 
-        <!-- Search Bar -->
-        <div class="search-box">
-          <span class="search-icon">🔍</span>
-          <input
-            type="text"
-            id="search-input"
-            placeholder="Поиск по ситуациям, словам, ключевым тегам..."
-            aria-label="Поиск по ситуациям"
-          />
-          <button id="clear-search-btn" class="btn-clear hidden" title="Очистить поиск">✕</button>
+      <!-- Welcome Hero Section (Unauthenticated / Initial view) -->
+      <section id="welcome-section" class="welcome-hero">
+        <div class="container welcome-container">
+          <div class="welcome-badge">👩‍🏫 Платформа поддержки педагогов</div>
+          <h1 class="welcome-title">Добро пожаловать в TeacherProblem!</h1>
+          <p class="welcome-subtitle">
+            Персональный онлайн-помощник и база проверенных скриптов (PostgreSQL) для решения сложных ситуаций в школе.
+          </p>
+          <div class="welcome-actions">
+            <button id="welcome-login-btn" class="btn btn-hero-primary">
+              🔑 Войти как учитель
+            </button>
+            <button id="welcome-admin-login-btn" class="btn btn-hero-secondary">
+              🛡️ Вход администратора
+            </button>
+          </div>
+          <div class="welcome-features">
+            <div class="feature-card">
+              <span class="feature-icon">💬</span>
+              <h4>Готовые алгоритмы</h4>
+              <p>Точные фразы и формулировки для разрешения конфликтов.</p>
+            </div>
+            <div class="feature-card">
+              <span class="feature-icon">🗄️</span>
+              <h4>PostgreSQL База</h4>
+              <p>Надежное централизованное хранение скриптов и аккаунтов.</p>
+            </div>
+            <div class="feature-card">
+              <span class="feature-icon">🛡️</span>
+              <h4>Админ Панель</h4>
+              <p>Управление аккаунтами учителей (добавление, сброс, роли).</p>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Main Content Area -->
-    <main class="container main-content">
-      <!-- Category Navigation Filter -->
-      <nav class="categories-wrapper">
-        <div id="categories-list" class="categories-list">
-          <!-- Dynamic category chips will be injected here -->
+      <!-- Dashboard Banner (Authenticated View) -->
+      <section id="dashboard-banner" class="dashboard-banner hidden">
+        <div class="container dashboard-banner-container">
+          <div class="banner-welcome-text">
+            <h2>С возвращением, <span id="banner-teacher-name">Мария Сергеевна</span>! 👋</h2>
+            <p>Выберите нужную категорию или воспользуйтесь быстрым поиском по базе решений.</p>
+          </div>
+          <div class="banner-actions">
+            <button id="add-script-main-btn" class="btn btn-primary shadow-btn">
+              <span>+ Добавить скрипт</span>
+            </button>
+            <button id="open-admin-main-btn" class="btn btn-secondary hidden">
+              <span>🛡️ Управление аккаунтами</span>
+            </button>
+          </div>
         </div>
-      </nav>
+      </section>
 
-      <!-- Stats Bar & Active Filters -->
-      <div class="filter-status-bar">
-        <div class="stats-text" id="stats-text">Загрузка скриптов...</div>
-        <button id="reset-filters-btn" class="btn-text hidden">Сбросить фильтры</button>
-      </div>
+      <!-- Main Database Area -->
+      <section id="database-section" class="container database-section">
 
-      <!-- Scripts Grid -->
-      <div id="scripts-grid" class="scripts-grid">
-        <!-- Script cards will be rendered here -->
-      </div>
+        <!-- Search Box -->
+        <div class="search-box-container">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Поиск по ситуациям, ключевым фразам, тегам (например: оценки, дисциплина)..."
+              aria-label="Поиск по ситуациям"
+            />
+            <button id="clear-search-btn" class="btn-clear hidden" title="Очистить поиск">✕</button>
+          </div>
+        </div>
 
-      <!-- Empty State -->
-      <div id="empty-state" class="empty-state hidden">
-        <div class="empty-icon">🔎</div>
-        <h3>Ничего не найдено</h3>
-        <p>Попробуйте изменить запрос или выберите другую категорию.</p>
-        <button id="empty-reset-btn" class="btn btn-secondary">Показать все скрипты</button>
-      </div>
+        <!-- Categories Chip Filter Navigation -->
+        <nav class="categories-wrapper">
+          <div id="categories-list" class="categories-list">
+            <!-- Dynamic category chips -->
+          </div>
+        </nav>
+
+        <!-- Stats Bar & Reset Filters -->
+        <div class="filter-status-bar">
+          <div class="stats-text" id="stats-text">Загрузка скриптов из БД...</div>
+          <button id="reset-filters-btn" class="btn-text hidden">Сбросить фильтры</button>
+        </div>
+
+        <!-- Scripts Grid -->
+        <div id="scripts-grid" class="scripts-grid">
+          <!-- Dynamic cards -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state hidden">
+          <div class="empty-icon">🔎</div>
+          <h3>Ничего не найдено</h3>
+          <p>Попробуйте изменить поисковый запрос или выбрать другую категорию.</p>
+          <button id="empty-reset-btn" class="btn btn-secondary">Показать все ситуации</button>
+        </div>
+
+      </section>
+
     </main>
 
     <!-- Footer -->
     <footer class="footer">
       <div class="container footer-content">
-        <p><strong>TeacherProblem</strong> — База практических скриптов общения для педагогов.</p>
-        <p class="footer-meta">Помогает повысить качество и скорость адаптации молодого учителя в школе.</p>
+        <div class="footer-brand">
+          <strong>TeacherProblem</strong> — Интерактивная база алгоритмов общения для педагогов (PostgreSQL Integration).
+        </div>
+        <p class="footer-meta">Спроектировано с заботой о комфорте и времени учителя. Segoe UI Theme Interface.</p>
       </div>
     </footer>
   </div>
 
-  <!-- Modal for Script Detail -->
+  <!-- Modal: Admin Panel (Manage Accounts & Scripts in PostgreSQL) -->
+  <div id="admin-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-lg">
+      <button class="modal-close-btn" id="admin-modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <div class="modal-badge">Панель администратора</div>
+        <h2>🛡️ Панель управления PostgreSQL БД</h2>
+        <p class="subtitle">Централизованное управление аккаунтами учителей и ситуационными скриптами</p>
+      </div>
+
+      <!-- Admin Panel Tabs -->
+      <div class="admin-tabs">
+        <button id="admin-tab-users-btn" class="admin-tab-btn active">👥 Управление аккаунтами</button>
+        <button id="admin-tab-scripts-btn" class="admin-tab-btn">📝 Скрипты в базе данных</button>
+      </div>
+
+      <!-- Tab Content 1: Users Table -->
+      <div id="admin-tab-users-content" class="admin-tab-content">
+        <div class="admin-toolbar">
+          <button id="admin-add-user-btn" class="btn btn-primary btn-sm">
+            <span>+ Добавить аккаунт учителя</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Учитель / ФИО</th>
+                <th>Email / Логин</th>
+                <th>Должность / Предмет</th>
+                <th>Роль</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody">
+              <!-- Rendered dynamically from PostgreSQL database -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Scripts Table -->
+      <div id="admin-tab-scripts-content" class="admin-tab-content hidden">
+        <div class="admin-toolbar">
+          <button id="admin-add-script-btn" class="btn btn-primary btn-sm">
+            <span>+ Добавить ситуационный скрипт в БД</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Категория</th>
+                <th>Заголовок ситуационного скрипта</th>
+                <th>Теги</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="admin-scripts-tbody">
+              <!-- Rendered dynamically from PostgreSQL database -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit User Account (Admin) -->
+  <div id="user-form-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <button class="modal-close-btn" id="user-form-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <h2 id="user-form-modal-title">Добавить аккаунт</h2>
+        <p class="subtitle">Заполните учетные данные пользователя</p>
+      </div>
+      <form id="user-account-form" class="modal-body form-body">
+        <input type="hidden" id="form-user-id" value="" />
+
+        <div class="form-group">
+          <label for="form-user-name">ФИО / Имя *</label>
+          <input type="text" id="form-user-name" placeholder="Например: Елены Викторовны" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-user-email">Email / Логин *</label>
+          <input type="email" id="form-user-email" placeholder="elena@school.edu.ru" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-user-role">Предмет / Должность</label>
+          <input type="text" id="form-user-role" placeholder="Учитель математики" required />
+        </div>
+
+        <div class="form-group">
+          <label for="form-user-password">Пароль</label>
+          <input type="password" id="form-user-password" placeholder="Оставьте пустым, если не меняете" />
+        </div>
+
+        <div class="form-group form-checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="form-user-is-admin" />
+            <span>Права Администратора (Админ Панель)</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="user-form-cancel-btn" class="btn btn-secondary">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить в БД</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Login / Auth -->
+  <div id="login-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <button class="modal-close-btn" id="login-modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <div class="modal-badge">Вход в систему</div>
+        <h2>Учетная запись</h2>
+        <p class="subtitle">Авторизация по логину и паролю из базы данных</p>
+      </div>
+      <form id="login-form" class="modal-body form-body">
+        <div class="form-group">
+          <label for="login-email">Электронная почта (Email)</label>
+          <input type="email" id="login-email" required placeholder="example@school.edu.ru" />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Пароль</label>
+          <input type="password" id="login-password" required placeholder="••••••••" />
+        </div>
+        <div class="form-actions vertical">
+          <button type="submit" class="btn btn-primary btn-block">Войти через Базу Данных</button>
+        </div>
+        <div class="auth-notice text-center" style="margin-top: 12px; font-size: 0.85rem; color: #605e5c;">
+          ℹ️ Регистрация аккаунтов выполняется только Администратором в Админ-панели.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="settings-modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <h2>⚙️ Настройки профиля учителя</h2>
+        <p class="subtitle">Управление личными данными и аккаунтом в базе</p>
+      </div>
+      <form id="settings-form" class="modal-body form-body">
+        <div class="settings-avatar-preview">
+          <img src="" id="settings-avatar-img" class="settings-avatar-thumb" alt="Аватар" />
+          <div>
+            <button type="button" id="settings-change-photo-btn" class="btn btn-secondary btn-sm">📷 Изменить фото профиля</button>
+            <p class="form-help">Форматы JPEG, PNG или WEBP, до 5 МБ.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="settings-name">Отображаемое имя (ФИО)</label>
+          <input type="text" id="settings-name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="settings-role">Предмет / Специализация</label>
+          <input type="text" id="settings-role" required />
+        </div>
+
+        <div class="form-group">
+          <label for="settings-email">Электронная почта</label>
+          <input type="email" id="settings-email" required />
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="settings-cancel-btn" class="btn btn-secondary">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: View Script Detail -->
   <div id="script-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="modal-close-btn" id="modal-close-btn" aria-label="Закрыть">✕</button>
@@ -125,13 +460,13 @@
     </div>
   </div>
 
-  <!-- Modal for Adding New Script -->
+  <!-- Modal: Add New Script -->
   <div id="add-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="modal-close-btn" id="add-modal-close-btn" aria-label="Закрыть">✕</button>
       <div class="modal-header">
-        <h2>Предложить новый скрипт</h2>
-        <p class="subtitle">Поделитесь вашим опытом решения сложной ситуаций</p>
+        <h2>Предложить новый скрипт в БД</h2>
+        <p class="subtitle">Поделитесь вашим опытом решения сложной ситуации</p>
       </div>
       <form id="add-script-form" class="modal-body form-body">
         <div class="form-group">
@@ -171,9 +506,22 @@
 
         <div class="form-actions">
           <button type="button" id="add-form-cancel-btn" class="btn btn-secondary">Отмена</button>
-          <button type="submit" class="btn btn-primary">Сохранить скрипт</button>
+          <button type="submit" class="btn btn-primary">Сохранить скрипт в БД</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Info Modal: Info / About -->
+  <div id="info-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="info-modal-close-btn" aria-label="Закрыть">✕</button>
+      <div class="modal-header">
+        <h2 id="info-modal-title">О проекте TeacherProblem</h2>
+      </div>
+      <div id="info-modal-content" class="modal-body info-content">
+        <!-- Content inserted dynamically -->
+      </div>
     </div>
   </div>
 
