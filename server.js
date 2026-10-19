@@ -87,14 +87,14 @@ async function initDatabase() {
     console.log('✅ Connected to PostgreSQL database');
 
     // Run schema and seed if tables don't exist
-    const checkTable = await client.query(`
+    const checkUsersTable = await client.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
-        WHERE table_name = 'scripts'
+        WHERE table_name = 'users'
       );
     `);
 
-    if (!checkTable.rows[0].exists) {
+    if (!checkUsersTable.rows[0].exists) {
       console.log('🔄 Initializing PostgreSQL database schema & seed data...');
       const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
       const seedSql = fs.readFileSync(path.join(__dirname, 'seed.sql'), 'utf-8');
@@ -102,6 +102,15 @@ async function initDatabase() {
       await client.query(schemaSql);
       await client.query(seedSql);
       console.log('✨ PostgreSQL database successfully initialized!');
+    } else {
+      // Check if users table is empty and seed if necessary
+      const userCount = await client.query('SELECT COUNT(*) FROM users');
+      if (parseInt(userCount.rows[0].count, 10) === 0) {
+        console.log('🔄 Users table is empty. Seeding initial user data...');
+        const seedSql = fs.readFileSync(path.join(__dirname, 'seed.sql'), 'utf-8');
+        await client.query(seedSql);
+        console.log('✨ PostgreSQL seed data inserted successfully!');
+      }
     }
 
     client.release();
@@ -124,9 +133,15 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Укажите email и пароль' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
   try {
     if (isPgConnected) {
-      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
       if (result.rows.length === 0) {
         return res.status(401).json({ error: 'Пользователь с такой почтой не найден' });
       }
@@ -137,7 +152,7 @@ app.post('/api/auth/login', async (req, res) => {
       delete user.password_hash;
       return res.json({ user });
     } else {
-      const user = inMemoryUsers.find(u => u.email === email);
+      const user = inMemoryUsers.find(u => u.email.toLowerCase() === cleanEmail);
       if (!user) {
         return res.status(401).json({ error: 'Пользователь не найден' });
       }
