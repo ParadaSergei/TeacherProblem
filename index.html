@@ -370,29 +370,19 @@
 
         <div class="form-group">
           <label for="login-email">Электронная почта (Email)</label>
-          <input type="email" id="login-email" required placeholder="teacher@school.edu.ru" />
+          <input type="email" id="login-email" required placeholder="example@school.edu.ru" />
         </div>
         <div class="form-group">
           <label for="login-password">Пароль</label>
           <input type="password" id="login-password" required placeholder="••••••••" />
         </div>
 
-        <div class="quick-demo-accounts">
-          <span class="quick-demo-title">Быстрый подбор аккаунта:</span>
-          <div class="quick-demo-buttons">
-            <button type="button" id="demo-teacher-btn" class="btn-demo-chip">👩‍🏫 Учитель</button>
-            <button type="button" id="demo-admin-btn" class="btn-demo-chip">🛡️ Завуч / Админ</button>
-          </div>
-        </div>
-
         <div class="form-actions vertical">
-          <button type="submit" class="btn btn-primary btn-block">Войти в систему</button>
+          <button type="submit" class="btn btn-primary btn-block">Войти через PostgreSQL</button>
         </div>
 
         <div class="auth-notice text-center" style="margin-top: 12px; font-size: 0.85rem; color: #605e5c;">
-          ℹ️ Доступные учетные данные:<br>
-          <strong>teacher@school.edu.ru</strong> (пароль: <strong>teacher123</strong>)<br>
-          <strong>admin@school.edu.ru</strong> (пароль: <strong>admin123</strong>)
+          ℹ️ Авторизация происходит строго по учетным данным из базы данных PostgreSQL. Регистрация выполняется Администратором.
         </div>
       </form>
     </div>

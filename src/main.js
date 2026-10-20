@@ -558,47 +558,7 @@ function setupEventListeners() {
   if (welcomeLoginBtn) welcomeLoginBtn.addEventListener('click', openLoginModal);
   if (welcomeAdminLoginBtn) welcomeAdminLoginBtn.addEventListener('click', openLoginModal);
 
-  // Quick Demo Buttons
-  const demoTeacherBtn = document.getElementById('demo-teacher-btn');
-  const demoAdminBtn = document.getElementById('demo-admin-btn');
-
-  if (demoTeacherBtn) {
-    demoTeacherBtn.addEventListener('click', () => {
-      document.getElementById('login-email').value = 'teacher@school.edu.ru';
-      document.getElementById('login-password').value = 'teacher123';
-    });
-  }
-
-  if (demoAdminBtn) {
-    demoAdminBtn.addEventListener('click', () => {
-      document.getElementById('login-email').value = 'admin@school.edu.ru';
-      document.getElementById('login-password').value = 'admin123';
-    });
-  }
-
-  // Fallback local accounts if server is unreachable
-  const fallbackUsers = [
-    {
-      id: 1,
-      email: 'admin@school.edu.ru',
-      password: 'admin123',
-      name: 'Администратор Системы',
-      role: 'Завуч / Администратор',
-      is_admin: true,
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150'
-    },
-    {
-      id: 2,
-      email: 'teacher@school.edu.ru',
-      password: 'teacher123',
-      name: 'Мария Сергеевна',
-      role: 'Учитель начальных классов',
-      is_admin: false,
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150'
-    }
-  ];
-
-  // Login Form Submit (SQL Backend Auth with Graceful Fallback)
+  // Login Form Submit (PostgreSQL Backend Auth)
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorBanner = document.getElementById('login-error-banner');
@@ -618,7 +578,7 @@ function setupEventListeners() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка аутентификации');
+      if (!res.ok) throw new Error(data.error || 'Ошибка авторизации в PostgreSQL');
 
       currentUser = data.user;
       isAuthenticated = true;
@@ -626,28 +586,15 @@ function setupEventListeners() {
       closeModals();
       showToast(`С возвращением, ${currentUser.name}!`);
     } catch (err) {
-      // If network/server fetch failed, check local fallback accounts
-      const cleanEmail = email.toLowerCase();
-      const fallbackUser = fallbackUsers.find(u => u.email.toLowerCase() === cleanEmail);
+      const msg = err.message === 'Failed to fetch'
+        ? 'Не удалось подключиться к серверу БД PostgreSQL.'
+        : err.message;
 
-      if (fallbackUser && fallbackUser.password === password) {
-        const { password: p, ...userData } = fallbackUser;
-        currentUser = userData;
-        isAuthenticated = true;
-        updateUserUI();
-        closeModals();
-        showToast(`С возвращением, ${currentUser.name}! (Автономный режим)`);
+      if (errorBanner) {
+        errorBanner.textContent = `❌ ${msg}`;
+        errorBanner.classList.remove('hidden');
       } else {
-        const msg = err.message === 'Failed to fetch'
-          ? 'Не удалось связаться с сервером. Попробуйте тестовые аккаунты: teacher@school.edu.ru / teacher123'
-          : err.message;
-
-        if (errorBanner) {
-          errorBanner.textContent = `❌ ${msg}`;
-          errorBanner.classList.remove('hidden');
-        } else {
-          showToast(msg);
-        }
+        showToast(msg);
       }
     }
   });

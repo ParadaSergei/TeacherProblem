@@ -1,3 +1,0 @@
-◇ injected env (6) from .env
-🚀 Server running on http://localhost:3001
-⚠️ Could not connect to PostgreSQL. Falling back to in-memory mode:
