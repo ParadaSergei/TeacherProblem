@@ -21,15 +21,25 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// PostgreSQL Pool Configuration
+// PostgreSQL Pool Configuration (Supports DATABASE_URL or individual PG* variables)
 const { Pool } = pg;
-const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: parseInt(process.env.PGPORT || '5432', 10),
-  database: process.env.PGDATABASE || 'teacher_problem',
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'postgres',
-});
+const dbUrl = process.env.DATABASE_URL || process.env.PGURI;
+
+const poolConfig = dbUrl
+  ? { connectionString: dbUrl }
+  : {
+      host: process.env.PGHOST || 'localhost',
+      port: parseInt(process.env.PGPORT || '5432', 10),
+      database: process.env.PGDATABASE || 'teacher_problem',
+      user: process.env.PGUSER || 'postgres',
+      password: process.env.PGPASSWORD !== undefined ? process.env.PGPASSWORD : 'postgres',
+    };
+
+if (process.env.PGSSL === 'true' || process.env.PGSSLMODE || (dbUrl && dbUrl.includes('sslmode='))) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
+
+const pool = new Pool(poolConfig);
 
 let isPgConnected = false;
 
@@ -40,15 +50,16 @@ async function initDatabase() {
     isPgConnected = true;
     console.log('✅ Connected to PostgreSQL database');
 
-    // Run schema and seed if tables don't exist
-    const checkUsersTable = await client.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_name = 'users'
-      );
+    // Check both users and scripts tables
+    const checkTables = await client.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_name IN ('users', 'scripts');
     `);
 
-    if (!checkUsersTable.rows[0].exists) {
+    const existingTables = checkTables.rows.map(r => r.table_name);
+
+    if (!existingTables.includes('users') || !existingTables.includes('scripts')) {
       console.log('🔄 Initializing PostgreSQL database schema & seed data...');
       const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
       const seedSql = fs.readFileSync(path.join(__dirname, 'seed.sql'), 'utf-8');
@@ -68,9 +79,11 @@ async function initDatabase() {
     }
 
     client.release();
+    return true;
   } catch (err) {
     isPgConnected = false;
     console.warn('⚠️ Could not connect to PostgreSQL database:', err.message);
+    return false;
   }
 }
 
@@ -78,23 +91,30 @@ async function initDatabase() {
 // REST API ENDPOINTS (PURE POSTGRESQL)
 // -----------------------------------------------------------------------------
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', pgConnected: isPgConnected });
-});
+// Helper check for DB connection with dynamic auto-reconnect
+async function checkDbConnection(res) {
+  if (isPgConnected) return true;
 
-// Helper check for DB connection
-function checkDbConnection(res) {
-  if (!isPgConnected) {
-    res.status(503).json({ error: 'База данных PostgreSQL недоступна. Проверьте подключение.' });
+  // Try reconnecting dynamically if initial connection failed
+  const reconnected = await initDatabase();
+  if (!reconnected) {
+    if (res) {
+      res.status(503).json({ error: 'База данных PostgreSQL недоступна. Проверьте параметры подключения в .env' });
+    }
     return false;
   }
   return true;
 }
 
+// Health check
+app.get('/api/health', async (req, res) => {
+  const connected = await checkDbConnection();
+  res.json({ status: 'ok', pgConnected: connected });
+});
+
 // Auth Login API (PostgreSQL query based on id, email, password_hash, name, role, is_admin, avatar, created_at)
 app.post('/api/auth/login', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const { email, password } = req.body;
 
@@ -131,7 +151,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 // DELETE /api/scripts/:id - Delete script (Admin Panel)
 app.delete('/api/scripts/:id', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const id = parseInt(req.params.id, 10);
 
@@ -148,7 +168,7 @@ app.delete('/api/scripts/:id', async (req, res) => {
 
 // GET /api/scripts/export - Export scripts table to Excel (.xlsx) file
 app.get('/api/scripts/export', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   try {
     const result = await pool.query('SELECT * FROM scripts ORDER BY id ASC');
@@ -180,7 +200,7 @@ app.get('/api/scripts/export', async (req, res) => {
 
 // POST /api/scripts/import - Import scripts from Excel file (.xlsx / .csv) into PostgreSQL
 app.post('/api/scripts/import', upload.single('file'), async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   if (!req.file) {
     return res.status(400).json({ error: 'Загрузите файл Excel (.xlsx) или CSV' });
@@ -234,7 +254,7 @@ app.post('/api/scripts/import', upload.single('file'), async (req, res) => {
 
 // GET /api/users - List all users (Admin Panel)
 app.get('/api/users', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   try {
     const result = await pool.query(
@@ -248,7 +268,7 @@ app.get('/api/users', async (req, res) => {
 
 // POST /api/users - Add new user account (Admin Panel)
 app.post('/api/users', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const { email, password, name, role, is_admin, avatar } = req.body;
 
@@ -273,34 +293,53 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// PUT /api/users/:id - Update user account (Admin Panel)
+// PUT /api/users/:id - Update user account (Admin Panel or User Profile)
 app.put('/api/users/:id', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const id = parseInt(req.params.id, 10);
   const { email, password, name, role, is_admin, avatar } = req.body;
 
   try {
-    let query = '';
-    let values = [];
+    const fields = [];
+    const values = [];
 
-    if (password && password.trim() !== '') {
-      query = `
-        UPDATE users
-        SET email = $1, password_hash = $2, name = $3, role = $4, is_admin = $5, avatar = COALESCE($6, avatar)
-        WHERE id = $7
-        RETURNING id, email, name, role, is_admin, avatar, created_at
-      `;
-      values = [email, password, name, role, Boolean(is_admin), avatar, id];
-    } else {
-      query = `
-        UPDATE users
-        SET email = $1, name = $2, role = $3, is_admin = $4, avatar = COALESCE($5, avatar)
-        WHERE id = $6
-        RETURNING id, email, name, role, is_admin, avatar, created_at
-      `;
-      values = [email, name, role, Boolean(is_admin), avatar, id];
+    if (email !== undefined) {
+      values.push(email);
+      fields.push(`email = $${values.length}`);
     }
+    if (name !== undefined) {
+      values.push(name);
+      fields.push(`name = $${values.length}`);
+    }
+    if (role !== undefined) {
+      values.push(role);
+      fields.push(`role = $${values.length}`);
+    }
+    if (is_admin !== undefined) {
+      values.push(Boolean(is_admin));
+      fields.push(`is_admin = $${values.length}`);
+    }
+    if (avatar !== undefined) {
+      values.push(avatar);
+      fields.push(`avatar = $${values.length}`);
+    }
+    if (password && password.trim() !== '') {
+      values.push(password.trim());
+      fields.push(`password_hash = $${values.length}`);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'Нет полей для обновления' });
+    }
+
+    values.push(id);
+    const query = `
+      UPDATE users
+      SET ${fields.join(', ')}
+      WHERE id = $${values.length}
+      RETURNING id, email, name, role, is_admin, avatar, created_at
+    `;
 
     const result = await pool.query(query, values);
     if (result.rows.length === 0) {
@@ -314,7 +353,7 @@ app.put('/api/users/:id', async (req, res) => {
 
 // DELETE /api/users/:id - Delete user account (Admin Panel)
 app.delete('/api/users/:id', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const id = parseInt(req.params.id, 10);
 
@@ -331,7 +370,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // GET /api/scripts - List scripts
 app.get('/api/scripts', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const { category, search } = req.query;
 
@@ -361,7 +400,7 @@ app.get('/api/scripts', async (req, res) => {
 
 // POST /api/scripts - Add script
 app.post('/api/scripts', async (req, res) => {
-  if (!checkDbConnection(res)) return;
+  if (!(await checkDbConnection(res))) return;
 
   const { category, title, description, situation, script_text, tips, tags } = req.body;
 

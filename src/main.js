@@ -1,7 +1,9 @@
 import { CATEGORIES } from './data/scriptsData.js';
 
 // API Base URL
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = window.location.port === '3000' || window.location.port === '5173'
+  ? '/api'
+  : (window.location.origin.includes('localhost') ? 'http://localhost:3001/api' : '/api');
 
 // Application State
 let scripts = [];
