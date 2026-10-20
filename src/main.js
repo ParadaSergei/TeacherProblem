@@ -5,6 +5,17 @@ const API_BASE_URL = window.location.port === '3000' || window.location.port ===
   ? '/api'
   : (window.location.origin.includes('localhost') ? 'http://localhost:3001/api' : '/api');
 
+// Safe JSON parser helper for API responses
+async function parseJsonResponse(res) {
+  try {
+    const text = await res.text();
+    if (!text || !text.trim()) return {};
+    return JSON.parse(text);
+  } catch (err) {
+    return { error: `Ошибка ответа сервера (status ${res.status})` };
+  }
+}
+
 // Application State
 let scripts = [];
 let activeCategory = 'all';
@@ -150,9 +161,16 @@ async function loadScriptsFromAPI() {
     if (params.toString()) url += `?${params.toString()}`;
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Ошибка сети при загрузке скриптов');
+    const data = await parseJsonResponse(res);
 
-    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Ошибка сети при загрузке скриптов');
+    }
+
+    if (!Array.isArray(data)) {
+      throw new Error(data.error || 'Неверный формат данных');
+    }
+
     scripts = data.map(item => ({
       id: item.id.toString(),
       category: item.category,
@@ -169,7 +187,7 @@ async function loadScriptsFromAPI() {
     console.warn('⚠️ Ошибка загрузки скриптов из базы данных:', err);
     scripts = [];
     renderScripts();
-    statsTextEl.textContent = 'Не удалось загрузить данные из базы PostgreSQL';
+    statsTextEl.textContent = err.message || 'Не удалось загрузить данные из базы PostgreSQL';
   }
 }
 
@@ -296,11 +314,12 @@ function openScriptModal(scriptId) {
 async function loadAdminUsers() {
   try {
     const res = await fetch(`${API_BASE_URL}/users`);
-    if (!res.ok) throw new Error('Ошибка загрузки пользователей');
-    usersList = await res.json();
+    const data = await parseJsonResponse(res);
+    if (!res.ok) throw new Error(data.error || 'Ошибка загрузки пользователей');
+    usersList = Array.isArray(data) ? data : [];
     renderAdminUsersTable();
   } catch (err) {
-    showToast('Ошибка работы с базой данных пользователей');
+    showToast(err.message || 'Ошибка работы с базой данных пользователей');
   }
 }
 
@@ -579,7 +598,7 @@ function setupEventListeners() {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || 'Ошибка авторизации в PostgreSQL');
 
       currentUser = data.user;
@@ -668,7 +687,7 @@ function setupEventListeners() {
           body: formData
         });
 
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         if (!res.ok) throw new Error(data.error || 'Ошибка импорта Excel');
 
         showToast(data.message || 'Скрипты успешно импортированы!');
@@ -690,7 +709,8 @@ function setupEventListeners() {
       if (confirm('Вы уверены, что хотите удалить этот ситуационный скрипт из базы данных?')) {
         try {
           const res = await fetch(`${API_BASE_URL}/scripts/${scriptId}`, { method: 'DELETE' });
-          if (!res.ok) throw new Error('Ошибка удаления скрипта');
+          const data = await parseJsonResponse(res);
+          if (!res.ok) throw new Error(data.error || 'Ошибка удаления скрипта');
           showToast('Скрипт успешно удален из базы данных');
           await loadScriptsFromAPI();
           renderAdminScriptsTable();
@@ -716,7 +736,8 @@ function setupEventListeners() {
       if (confirm('Вы уверены, что хотите удалить этот аккаунт учителя из БД?')) {
         try {
           const res = await fetch(`${API_BASE_URL}/users/${userId}`, { method: 'DELETE' });
-          if (!res.ok) throw new Error('Ошибка удаления аккаунта');
+          const data = await parseJsonResponse(res);
+          if (!res.ok) throw new Error(data.error || 'Ошибка удаления аккаунта');
           showToast('Аккаунт учителя успешно удален из БД');
           await loadAdminUsers();
         } catch (err) {
@@ -758,9 +779,9 @@ function setupEventListeners() {
         });
       }
 
+      const data = await parseJsonResponse(res);
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Ошибка сохранения пользователя');
+        throw new Error(data.error || 'Ошибка сохранения пользователя');
       }
 
       userFormModalEl.classList.add('hidden');
@@ -956,7 +977,8 @@ function setupEventListeners() {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('Ошибка сохранения скрипта в БД');
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Ошибка сохранения скрипта в БД');
 
       addScriptForm.reset();
       closeModals();
