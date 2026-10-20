@@ -283,7 +283,12 @@
 
       <!-- Tab Content 2: Scripts Table -->
       <div id="admin-tab-scripts-content" class="admin-tab-content hidden">
-        <div class="admin-toolbar">
+        <div class="admin-toolbar" style="justify-content: space-between;">
+          <div style="display:flex; gap:8px;">
+            <button id="admin-export-excel-btn" class="btn btn-secondary btn-sm">📊 Экспорт в Excel</button>
+            <button id="admin-import-excel-btn" class="btn btn-secondary btn-sm">📥 Импорт из Excel</button>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" />
+          </div>
           <button id="admin-add-script-btn" class="btn btn-primary btn-sm">
             <span>+ Добавить ситуационный скрипт в БД</span>
           </button>

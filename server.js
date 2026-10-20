@@ -5,8 +5,12 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import XLSX from 'xlsx';
+import multer from 'multer';
 
 dotenv.config();
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -139,6 +143,92 @@ app.delete('/api/scripts/:id', async (req, res) => {
     res.json({ message: 'Скрипт успешно удален из БД', id });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/scripts/export - Export scripts table to Excel (.xlsx) file
+app.get('/api/scripts/export', async (req, res) => {
+  if (!checkDbConnection(res)) return;
+
+  try {
+    const result = await pool.query('SELECT * FROM scripts ORDER BY id ASC');
+    const rows = result.rows.map(row => ({
+      ID: row.id,
+      Категория: row.category,
+      Заголовок: row.title,
+      Описание: row.description || '',
+      Ситуация: row.situation || '',
+      Текст_скрипта: row.script_text || '',
+      Советы: Array.isArray(row.tips) ? row.tips.join('\n') : '',
+      Теги: Array.isArray(row.tags) ? row.tags.join(', ') : '',
+      Дата_создания: row.created_at
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Скрипты');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="teacher_scripts.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка экспорта в Excel: ' + err.message });
+  }
+});
+
+// POST /api/scripts/import - Import scripts from Excel file (.xlsx / .csv) into PostgreSQL
+app.post('/api/scripts/import', upload.single('file'), async (req, res) => {
+  if (!checkDbConnection(res)) return;
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Загрузите файл Excel (.xlsx) или CSV' });
+  }
+
+  try {
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet);
+
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ error: 'Загруженный файл Excel пуст' });
+    }
+
+    let importedCount = 0;
+
+    for (const row of rows) {
+      const category = row['Категория'] || row['category'] || 'general';
+      const title = row['Заголовок'] || row['title'];
+      const description = row['Описание'] || row['description'] || '';
+      const situation = row['Ситуация'] || row['situation'] || title;
+      const script_text = row['Текст_скрипта'] || row['script_text'] || row['scriptText'] || '';
+      const tipsRaw = row['Советы'] || row['tips'] || '';
+      const tagsRaw = row['Теги'] || row['tags'] || '';
+
+      if (!title || !script_text) continue;
+
+      const tips = typeof tipsRaw === 'string'
+        ? tipsRaw.split('\n').map(t => t.trim()).filter(Boolean)
+        : (Array.isArray(tipsRaw) ? tipsRaw : []);
+
+      const tags = typeof tagsRaw === 'string'
+        ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean)
+        : (Array.isArray(tagsRaw) ? tagsRaw : []);
+
+      const query = `
+        INSERT INTO scripts (category, title, description, situation, script_text, tips, tags)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `;
+      await pool.query(query, [category, title, description, situation, script_text, tips, tags]);
+      importedCount++;
+    }
+
+    res.json({ message: `Успешно импортировано ${importedCount} скриптов в базу данных!`, count: importedCount });
+  } catch (err) {
+    console.error('Import error:', err);
+    res.status(500).json({ error: 'Ошибка импорта файла Excel: ' + err.message });
   }
 });
 

@@ -634,6 +634,52 @@ function setupEventListeners() {
     addModalEl.classList.remove('hidden');
   });
 
+  // Admin Panel: Excel Export
+  const adminExportExcelBtn = document.getElementById('admin-export-excel-btn');
+  if (adminExportExcelBtn) {
+    adminExportExcelBtn.addEventListener('click', () => {
+      window.open(`${API_BASE_URL}/scripts/export`, '_blank');
+      showToast('Экспорт скриптов в Excel начался...');
+    });
+  }
+
+  // Admin Panel: Excel Import
+  const adminImportExcelBtn = document.getElementById('admin-import-excel-btn');
+  const excelFileInput = document.getElementById('excel-file-input');
+
+  if (adminImportExcelBtn && excelFileInput) {
+    adminImportExcelBtn.addEventListener('click', () => {
+      excelFileInput.click();
+    });
+
+    excelFileInput.addEventListener('change', async (e) => {
+      if (!e.target.files || e.target.files.length === 0) return;
+
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        showToast('Импорт данных из Excel...');
+        const res = await fetch(`${API_BASE_URL}/scripts/import`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Ошибка импорта Excel');
+
+        showToast(data.message || 'Скрипты успешно импортированы!');
+        await loadScriptsFromAPI();
+        renderAdminScriptsTable();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        excelFileInput.value = '';
+      }
+    });
+  }
+
   // Admin Panel: Delete Script Delegation
   adminScriptsTbody.addEventListener('click', async (e) => {
     const deleteBtn = e.target.closest('.delete-script-btn');
