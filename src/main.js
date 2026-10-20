@@ -543,19 +543,30 @@ function setupEventListeners() {
     });
   }
 
+  // Show login modal function with clean error banner
+  const openLoginModal = () => {
+    const errorBanner = document.getElementById('login-error-banner');
+    if (errorBanner) {
+      errorBanner.textContent = '';
+      errorBanner.classList.add('hidden');
+    }
+    loginModalEl.classList.remove('hidden');
+  };
+
   // Login triggers
-  headerLoginBtn.addEventListener('click', () => loginModalEl.classList.remove('hidden'));
-  welcomeLoginBtn.addEventListener('click', () => {
-    loginModalEl.classList.remove('hidden');
-  });
+  headerLoginBtn.addEventListener('click', openLoginModal);
+  if (welcomeLoginBtn) welcomeLoginBtn.addEventListener('click', openLoginModal);
+  if (welcomeAdminLoginBtn) welcomeAdminLoginBtn.addEventListener('click', openLoginModal);
 
-  welcomeAdminLoginBtn.addEventListener('click', () => {
-    loginModalEl.classList.remove('hidden');
-  });
-
-  // Login Form Submit (SQL Backend Auth)
+  // Login Form Submit (PostgreSQL Backend Auth)
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const errorBanner = document.getElementById('login-error-banner');
+    if (errorBanner) {
+      errorBanner.textContent = '';
+      errorBanner.classList.add('hidden');
+    }
+
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
 
@@ -567,7 +578,7 @@ function setupEventListeners() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка аутентификации');
+      if (!res.ok) throw new Error(data.error || 'Ошибка авторизации в PostgreSQL');
 
       currentUser = data.user;
       isAuthenticated = true;
@@ -575,7 +586,16 @@ function setupEventListeners() {
       closeModals();
       showToast(`С возвращением, ${currentUser.name}!`);
     } catch (err) {
-      showToast(err.message);
+      const msg = err.message === 'Failed to fetch'
+        ? 'Не удалось подключиться к серверу БД PostgreSQL.'
+        : err.message;
+
+      if (errorBanner) {
+        errorBanner.textContent = `❌ ${msg}`;
+        errorBanner.classList.remove('hidden');
+      } else {
+        showToast(msg);
+      }
     }
   });
 
@@ -613,6 +633,52 @@ function setupEventListeners() {
   adminAddScriptBtn.addEventListener('click', () => {
     addModalEl.classList.remove('hidden');
   });
+
+  // Admin Panel: Excel Export
+  const adminExportExcelBtn = document.getElementById('admin-export-excel-btn');
+  if (adminExportExcelBtn) {
+    adminExportExcelBtn.addEventListener('click', () => {
+      window.open(`${API_BASE_URL}/scripts/export`, '_blank');
+      showToast('Экспорт скриптов в Excel начался...');
+    });
+  }
+
+  // Admin Panel: Excel Import
+  const adminImportExcelBtn = document.getElementById('admin-import-excel-btn');
+  const excelFileInput = document.getElementById('excel-file-input');
+
+  if (adminImportExcelBtn && excelFileInput) {
+    adminImportExcelBtn.addEventListener('click', () => {
+      excelFileInput.click();
+    });
+
+    excelFileInput.addEventListener('change', async (e) => {
+      if (!e.target.files || e.target.files.length === 0) return;
+
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        showToast('Импорт данных из Excel...');
+        const res = await fetch(`${API_BASE_URL}/scripts/import`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Ошибка импорта Excel');
+
+        showToast(data.message || 'Скрипты успешно импортированы!');
+        await loadScriptsFromAPI();
+        renderAdminScriptsTable();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        excelFileInput.value = '';
+      }
+    });
+  }
 
   // Admin Panel: Delete Script Delegation
   adminScriptsTbody.addEventListener('click', async (e) => {
