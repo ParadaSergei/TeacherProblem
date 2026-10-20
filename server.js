@@ -138,32 +138,34 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
+  const cleanPassword = password.trim();
 
   try {
     if (isPgConnected) {
       const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
       if (result.rows.length === 0) {
-        return res.status(401).json({ error: 'Пользователь с такой почтой не найден' });
+        return res.status(401).json({ error: 'Пользователь с такой почтой не найден в базе данных' });
       }
       const user = result.rows[0];
-      if (user.password_hash !== password) {
+      if (user.password_hash !== cleanPassword && user.password_hash !== password) {
         return res.status(401).json({ error: 'Неверный пароль' });
       }
       delete user.password_hash;
-      return res.json({ user });
+      return res.json({ user, mode: 'postgresql' });
     } else {
       const user = inMemoryUsers.find(u => u.email.toLowerCase() === cleanEmail);
       if (!user) {
-        return res.status(401).json({ error: 'Пользователь не найден' });
+        return res.status(401).json({ error: 'Пользователь с такой почтой не найден' });
       }
-      if (user.password_hash !== password) {
+      if (user.password_hash !== cleanPassword && user.password_hash !== password) {
         return res.status(401).json({ error: 'Неверный пароль' });
       }
       const { password_hash, ...userData } = user;
-      return res.json({ user: userData });
+      return res.json({ user: userData, mode: 'memory' });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Ошибка сервера при авторизации: ' + err.message });
   }
 });
 

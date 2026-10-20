@@ -366,19 +366,33 @@
         <p class="subtitle">Авторизация по логину и паролю из базы данных</p>
       </div>
       <form id="login-form" class="modal-body form-body">
+        <div id="login-error-banner" class="auth-error-banner hidden"></div>
+
         <div class="form-group">
           <label for="login-email">Электронная почта (Email)</label>
-          <input type="email" id="login-email" required placeholder="example@school.edu.ru" />
+          <input type="email" id="login-email" required placeholder="teacher@school.edu.ru" />
         </div>
         <div class="form-group">
           <label for="login-password">Пароль</label>
           <input type="password" id="login-password" required placeholder="••••••••" />
         </div>
-        <div class="form-actions vertical">
-          <button type="submit" class="btn btn-primary btn-block">Войти через Базу Данных</button>
+
+        <div class="quick-demo-accounts">
+          <span class="quick-demo-title">Быстрый подбор аккаунта:</span>
+          <div class="quick-demo-buttons">
+            <button type="button" id="demo-teacher-btn" class="btn-demo-chip">👩‍🏫 Учитель</button>
+            <button type="button" id="demo-admin-btn" class="btn-demo-chip">🛡️ Завуч / Админ</button>
+          </div>
         </div>
+
+        <div class="form-actions vertical">
+          <button type="submit" class="btn btn-primary btn-block">Войти в систему</button>
+        </div>
+
         <div class="auth-notice text-center" style="margin-top: 12px; font-size: 0.85rem; color: #605e5c;">
-          ℹ️ Регистрация аккаунтов выполняется только Администратором в Админ-панели.
+          ℹ️ Доступные учетные данные:<br>
+          <strong>teacher@school.edu.ru</strong> (пароль: <strong>teacher123</strong>)<br>
+          <strong>admin@school.edu.ru</strong> (пароль: <strong>admin123</strong>)
         </div>
       </form>
     </div>
